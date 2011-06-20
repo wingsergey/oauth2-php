@@ -830,7 +830,7 @@ class OAuth2 {
    * Pull the authorization request data out of the HTTP request.
    *
    * @param $inputData - The draft specifies that the parameters should be
-   * retreived from POST, but you can override to whatever method you like.
+   * retreived from GET, but you can override to whatever method you like.
    * @return
    *   The authorization parameters so the authorization server can prompt
    *   the user for approval if valid.
@@ -849,7 +849,7 @@ class OAuth2 {
     );
 
     if (!isset($inputData)) {
-    	$inputData = $_POST;
+    	$inputData = $_GET;
     }
     $input = filter_var_array($inputData, $filters);
 
