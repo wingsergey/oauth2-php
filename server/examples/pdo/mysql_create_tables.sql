@@ -3,7 +3,6 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 CREATE TABLE `auth_codes` (
   `code` varchar(40) NOT NULL,
   `client_id` varchar(20) NOT NULL,
-  `user_id` int(11) UNSIGNED NOT NULL,
   `redirect_uri` varchar(200) NOT NULL,
   `expires` int(11) NOT NULL,
   `scope` varchar(250) DEFAULT NULL,
@@ -27,7 +26,7 @@ CREATE TABLE `access_tokens` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE `refresh_tokens` (
-  `oauth_token` varchar(40) NOT NULL,
+  `refresh_token` varchar(40) NOT NULL,
   `client_id` varchar(20) NOT NULL,
   `user_id` int(11) UNSIGNED NOT NULL,
   `expires` int(11) NOT NULL,

@@ -8,7 +8,7 @@
  *   new PDOOAuth2( new PDO('mysql:dbname=mydb;host=localhost', 'user', 'pass') );
  */
 
-include '../../../lib/OAuth2.inc';
+include '../../../lib/OAuth2.php';
 include '../../../lib/IOAuth2Storage.php';
 
 /**
@@ -80,7 +80,7 @@ class PDOOAuth2 implements IOAuth2Storage {
    */
   public function addClient($client_id, $client_secret, $redirect_uri) {
     try {
-      $client_secret = $this->hash($client_id, $client_secret);
+      $client_secret = $this->hash($client_secret, $client_id);
       
       $sql = 'INSERT INTO '. TABLE_CLIENTS .' (client_id, client_secret, redirect_uri) VALUES (:client_id, :client_secret, :redirect_uri)';
       $stmt = $this->db->prepare($sql);
@@ -109,7 +109,7 @@ class PDOOAuth2 implements IOAuth2Storage {
       if ($client_secret === NULL)
           return $result !== FALSE;
 
-      return $result['client_secret'] == $this->hash($client_id, $client_secret);
+      return $this->checkPassword($client_secret, $result['client_secret'], $client_id);
     } catch (PDOException $e) {
       $this->handleException($e);
     }
@@ -130,7 +130,7 @@ class PDOOAuth2 implements IOAuth2Storage {
       if ($result === FALSE)
           return FALSE;
 
-      return isset($result['redirect_uri']) && $result['redirect_uri'] ? $result['redirect_uri'] : NULL;
+      return isset($result['redirect_uri']) && $result['redirect_uri'] ? $result : NULL;
     } catch (PDOException $e) {
       $this->handleException($e);
     }
@@ -169,7 +169,10 @@ class PDOOAuth2 implements IOAuth2Storage {
    */
   public function unsetRefreshToken($refresh_token) {
     try {
-	  $this->db->delete(self::TABLE_TOKENS, array('oauth_token' => $refresh_token, 'is_refresh' => 1));
+	  $sql = 'DELETE FROM '.self::TABLE_TOKENS.' WHERE refresh_token = :refresh_token';
+      $stmt = $this->db->prepare($sql);
+      $stmt->bindParam(':refresh_token', $refresh_token, PDO::PARAM_STR);
+      $stmt->execute();
     } catch (PDOException $e) {
 	  $this->handleException($e);
     }
@@ -187,7 +190,7 @@ class PDOOAuth2 implements IOAuth2Storage {
    */
   public function getAuthCode($code) {
     try {
-      $sql = 'SELECT code, client_id, user_id, redirect_uri, expires, scope FROM '. self::TABLE_CODES .'auth_codes WHERE code = :code';
+      $sql = 'SELECT code, client_id, user_id, redirect_uri, expires, scope FROM '. self::TABLE_CODES .' auth_codes WHERE code = :code';
       $stmt = $this->db->prepare($sql);
       $stmt->bindParam(':code', $code, PDO::PARAM_STR);
       $stmt->execute();
@@ -240,24 +243,38 @@ class PDOOAuth2 implements IOAuth2Storage {
   public function checkAssertion($client_id, $assertion_type, $assertion) {
   	return NULL; // Not implemented
   }
+
+  /**
+   * @see IOAuth2Storage::checkRestrictedAuthResponseType()
+   */
+  protected function checkRestrictedAuthResponseType($client_id, $response_type) {
+    return TRUE; // Not implemented
+  }
+
+  /**
+   * @see IOAuth2Storage::checkRestrictedGrantType()
+   */
+  protected function checkRestrictedGrantType($client_id, $grant_type) {
+    return TRUE; // Not implemented
+  }
   
   /**
    * Creates a refresh or access token
    * 
-   * @param string $oauth_token
+   * @param string $token - Access or refresh token id
    * @param string $client_id
    * @param mixed $user_id
    * @param int $expires
    * @param string $scope
    * @param bool $isRefresh
    */
-  protected function setToken($oauth_token, $client_id, $user_id, $expires, $scope, $isRefresh = TRUE) {
-  	$tableName = $isRefresh ? self::TABLE_REFRESH :  self::TABLE_TOKENS;
-  	
+  protected function setToken($token, $client_id, $user_id, $expires, $scope, $isRefresh = TRUE) {
     try {
-      $sql = 'INSERT INTO '.$tableName.'tokens (oauth_token, client_id, user_id, expires, scope) VALUES (:oauth_token, :client_id, :user_id, :expires, :scope)';
+      $tableName = $isRefresh ? self::TABLE_REFRESH :  self::TABLE_TOKENS;
+      
+      $sql = "INSERT INTO $tableName tokens (token, client_id, user_id, expires, scope) VALUES (:token, :client_id, :user_id, :expires, :scope)";
       $stmt = $this->db->prepare($sql);
-      $stmt->bindParam(':oauth_token', $oauth_token, PDO::PARAM_STR);
+      $stmt->bindParam(':token', $token, PDO::PARAM_STR);
       $stmt->bindParam(':client_id', $client_id, PDO::PARAM_STR);
       $stmt->bindParam(':user_id', $user_id, PDO::PARAM_STR);
       $stmt->bindParam(':expires', $expires, PDO::PARAM_INT);
@@ -270,12 +287,48 @@ class PDOOAuth2 implements IOAuth2Storage {
   }
   
   /**
+   * Retreives an access or refresh token.
+   *  
+   * @param string $token
+   * @param bool $refresh
+   */
+  protected function getToken($token, $isRefresh = true) {
+    try {
+      $tableName = $isRefresh ? self::TABLE_REFRESH :  self::TABLE_TOKENS;
+      $tokenName = $isRefresh ? 'refresh_token' : 'oauth_token';
+      
+      $sql = "SELECT token AS $tokenName, client_id, expires, scope, user_id FROM $tableName WHERE token = :token";
+      $stmt = $this->db->prepare($sql);
+      $stmt->bindParam(':token', $token, PDO::PARAM_STR);
+      $stmt->execute();
+
+      $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+      return $result !== FALSE ? $result : NULL;
+    } catch (PDOException $e) {
+      $this->handleException($e);
+    }
+  }
+  
+  /**
    * Change/override this to whatever your own password hashing method is.
    * 
    * @param string $secret
    * @return string
    */
-  protected function hash($client_id, $client_secret) {
-  	return hash('blowfish', $client_id . $client_secret . self::SALT);
+  protected function hash($client_secret, $client_id) {
+  	return hash('blowfish', $client_id.$client_secret.self::SALT);
+  }
+  
+  /**
+   * Checks the password.
+   * Override this if you need to
+   * 
+   * @param string $client_id
+   * @param string $client_secret
+   * @param string $actualPassword
+   */
+  protected function checkPassword($try, $client_secret, $client_id) {
+  	return $try == $this->hash($client_secret, $client_id);
   }
 }

@@ -28,22 +28,6 @@
 
 
 /**
- * The default duration in seconds of the access token lifetime.
- */
-define("OAUTH2_DEFAULT_ACCESS_TOKEN_LIFETIME", 3600);
-
-/**
- * The default duration in seconds of the authorization code lifetime.
- */
-define("OAUTH2_DEFAULT_AUTH_CODE_LIFETIME", 30);
-
-/**
- * The default duration in seconds of the refresh token lifetime.
- */
-define("OAUTH2_DEFAULT_REFRESH_TOKEN_LIFETIME", 1209600);
-
-
-/**
  * @defgroup oauth2_section_2 Client Credentials
  * @{
  *
@@ -84,21 +68,6 @@ define("OAUTH2_CLIENT_ID_REGEXP", "/^[a-z0-9-_]{3,32}$/i");
  *
  * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3
  */
-
-/**
- * Denotes "token" authorization response type.
- */
-define("OAUTH2_AUTH_RESPONSE_TYPE_ACCESS_TOKEN", "token");
-
-/**
- * Denotes "code" authorization response type.
- */
-define("OAUTH2_AUTH_RESPONSE_TYPE_AUTH_CODE", "code");
-
-/**
- * Denotes "code-and-token" authorization response type.
- */
-define("OAUTH2_AUTH_RESPONSE_TYPE_CODE_AND_TOKEN", "code-and-token");
 
 /**
  * Regex to filter out the authorization response type.
@@ -359,144 +328,88 @@ class OAuth2 {
   protected $conf = array();
   
   /**
-   * 
+   * Storage engine for authentication server
    * 
    * @var IOAuth2Storage
    */
   protected $storage;
-
-  // Stuff that can get overridden by subclasses.
-  // Override the ones you need.
+  
+  /**
+   * Keep track of the old refresh token. So we can unset
+   * the old refresh tokens when a new one is issued.
+   * 
+   * @var string
+   */
+  protected $oldRefreshToken;
 
   /**
-   * Return supported authorization response types.
-   *
-   * You should override this function with your supported response types.
-   *
-   * @return
-   *   A list as below. If you support all authorization response types,
-   *   then you'd do:
-   * @code
-   * return array(
-   *   OAUTH2_AUTH_RESPONSE_TYPE_AUTH_CODE,
-   *   OAUTH2_AUTH_RESPONSE_TYPE_ACCESS_TOKEN,
-   *   OAUTH2_AUTH_RESPONSE_TYPE_CODE_AND_TOKEN,
-   * );
-   * @endcode
-   *
-   * @ingroup oauth2_section_3
+   * Default values for configuration options.
+   *  
+   * @var int
+   * @see OAuth2::setDefaultOptions()
    */
-  protected function getSupportedAuthResponseTypes() {
-    return array(
-      OAUTH2_AUTH_RESPONSE_TYPE_AUTH_CODE,
-      OAUTH2_AUTH_RESPONSE_TYPE_ACCESS_TOKEN,
-      OAUTH2_AUTH_RESPONSE_TYPE_CODE_AND_TOKEN
-    );
-  }
-
+  const DEFAULT_ACCESS_TOKEN_LIFETIME  = 3600; 
+  const DEFAULT_REFRESH_TOKEN_LIFETIME = 30; 
+  const DEFAULT_AUTH_CODE_LIFETIME     = 1209600;
+  const DEFAULT_WWW_REALM              = 'Service';
+  
   /**
-   * Return supported scopes.
-   *
-   * If you want to support scope use, then have this function return a list
-   * of all acceptable scopes (used to throw the invalid-scope error).
-   *
-   * @return
-   *   A list as below, for example:
-   * @code
-   * return array(
-   *   'my-friends',
-   *   'photos',
-   *   'whatever-else',
-   * );
-   * @endcode
-   *
-   * @ingroup oauth2_section_3
+   * Configurable options.
+   *  
+   * @var string
    */
-  protected function getSupportedScopes() {
-    return array();
-  }
-
+  const CONFIG_ACCESS_LIFETIME   = 'access_token_lifetime';  // The lifetime of access token in seconds.
+  const CONFIG_REFRESH_LIFETIME  = 'refresh_token_lifetime'; // The lifetime of refresh token in seconds.
+  const CONFIG_AUTH_LIFETIME     = 'auth_code_lifetime';     // The lifetime of auth code in seconds.
+  const CONFIG_DISPLAY_ERROR     = 'display_error';          // Whether to show verbose error messages in the response.
+  const CONFIG_SUPPORTED_AUTH    = 'supported_auth_types';   // Array of supported auth types
+  const CONFIG_SUPPORTED_SCOPES  = 'supported_scopes';       // Array of scopes you want to support
+  const CONFIG_DEFAULT_REALM     = 'default_auth_realm';     // Realm you want to send in a WWW-Authenticate header
+  
   /**
-   * Check restricted authorization response types of corresponding Client
-   * identifier.
-   *
-   * If you want to restrict clients to certain authorization response types,
-   * override this function.
-   *
-   * @param $client_id
-   *   Client identifier to be check with.
-   * @param $response_type
-   *   Authorization response type to be check with, would be one of the
-   *   values contained in OAUTH2_AUTH_RESPONSE_TYPE_REGEXP.
-   *
-   * @return
-   *   TRUE if the authorization response type is supported by this
-   *   client identifier, and FALSE if it isn't.
-   *
-   * @ingroup oauth2_section_3
+   * List of possible authentication response types.
+   * You can specify the CONFIG_SUPPORTED_AUTH array with one or
+   * more the below options.
+   * 
+   * @var string
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3
    */
-  protected function checkRestrictedAuthResponseType($client_id, $response_type) {
-    return TRUE;
-  }
-
-  /**
-   * Check restricted grant types of corresponding client identifier.
-   *
-   * If you want to restrict clients to certain grant types, override this
-   * function.
-   *
-   * @param $client_id
-   *   Client identifier to be check with.
-   * @param $grant_type
-   *   Grant type to be check with, would be one of the values contained in
-   *   OAUTH2_GRANT_TYPE_REGEXP.
-   *
-   * @return
-   *   TRUE if the grant type is supported by this client identifier, and
-   *   FALSE if it isn't.
-   *
-   * @ingroup oauth2_section_4
-   */
-  protected function checkRestrictedGrantType($client_id, $grant_type) {
-    return TRUE;
-  }
-
-  /**
-   * Get default authentication realm for WWW-Authenticate header.
-   *
-   * Change this to whatever authentication realm you want to send in a
-   * WWW-Authenticate header.
-   *
-   * @return
-   *   A string that you want to send in a WWW-Authenticate header.
-   *
-   * @ingroup oauth2_error
-   */
-  protected function getDefaultAuthenticationRealm() {
-    return "Service";
-  }
-
-  // End stuff that should get overridden.
-
+  const AUTH_RESPONSE_TYPE_AUTH_CODE      = 'code';
+  const AUTH_RESPONSE_TYPE_ACCESS_TOKEN   = 'token';
+  const AUTH_RESPONSE_TYPE_CODE_AND_TOKEN = 'code-and-token';
+  
   /**
    * Creates an OAuth2.0 server-side instance.
    *
-   * @param $config
-   *   An associative array as below:
-   *   - access_token_lifetime: (optional) The lifetime of access token in
-   *     seconds.
-   *   - auth_code_lifetime: (optional) The lifetime of authorization code in
-   *     seconds.
-   *   - refresh_token_lifetime: (optional) The lifetime of refresh token in
-   *     seconds.
-   *   - display_error: (optional) Whether to show verbose error messages in
-   *     the response.
+   * @param $config - An associative array as below of config options. See CONFIG_* constants.
    */
   public function __construct(IOAuth2Storage $storage, $config = array()) {
     $this->storage = $storage;
+    
+    // Configuration options
+    $this->setDefaultOptions();
     foreach ($config as $name => $value) {
       $this->setVariable($name, $value);
     }
+  }
+ 
+  /**
+   * Default configuration options are specified here.
+   */
+  protected function setDefaultOptions() {
+  	$this->conf = array(
+  		self::CONFIG_ACCESS_LIFETIME  => self::DEFAULT_ACCESS_TOKEN_LIFETIME,
+  		self::CONFIG_REFRESH_LIFETIME => self::DEFAULT_REFRESH_TOKEN_LIFETIME, 
+  		self::CONFIG_AUTH_LIFETIME    => self::DEFAULT_AUTH_CODE_LIFETIME,
+  		self::CONFIG_DEFAULT_REALM    => self::DEFAULT_REALM,
+  		self::CONFIG_SUPPORTED_AUTH   => array(
+  			self::AUTH_RESPONSE_TYPE_AUTH_CODE,
+      		self::AUTH_RESPONSE_TYPE_ACCESS_TOKEN,
+      		self::AUTH_RESPONSE_TYPE_CODE_AND_TOKEN
+      	),
+      	// This is expected to be passed in on construction. Scopes can be an aribitrary string.
+      	self::CONFIG_SUPPORTED_SCOPES => array()  
+  	);
   }
 
   /**
@@ -764,7 +677,7 @@ class OAuth2 {
           $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_EXPIRED_TOKEN);
 
         // store the refresh token locally so we can delete it when a new refresh token is generated
-        $this->setVariable('_old_refresh_token', $stored["refresh_token"]);
+        $this->oldRefreshToken = $stored["refresh_token"];
 
         break;
       case OAUTH2_GRANT_TYPE_NONE:
@@ -946,10 +859,10 @@ class OAuth2 {
       $result["query"]["error"] = OAUTH2_ERROR_USER_DENIED;
     }
     else {
-      if ($response_type == OAUTH2_AUTH_RESPONSE_TYPE_AUTH_CODE || $response_type == OAUTH2_AUTH_RESPONSE_TYPE_CODE_AND_TOKEN)
+      if ($response_type == self::AUTH_RESPONSE_TYPE_AUTH_CODE || $response_type == self::AUTH_RESPONSE_TYPE_CODE_AND_TOKEN)
         $result["query"]["code"] = $this->createAuthCode($client_id, $user_id, $redirect_uri, $scope);
 
-      if ($response_type == OAUTH2_AUTH_RESPONSE_TYPE_ACCESS_TOKEN || $response_type == OAUTH2_AUTH_RESPONSE_TYPE_CODE_AND_TOKEN)
+      if ($response_type == self::AUTH_RESPONSE_TYPE_ACCESS_TOKEN || $response_type == self::AUTH_RESPONSE_TYPE_CODE_AND_TOKEN)
         $result["fragment"] = $this->createAccessToken($client_id, $user_id, $scope);
     }
 
@@ -1029,19 +942,20 @@ class OAuth2 {
   	
     $token = array(
       "access_token" => $this->genAccessToken(),
-      "expires_in" => $this->getVariable('access_token_lifetime', OAUTH2_DEFAULT_ACCESS_TOKEN_LIFETIME),
+      "expires_in" => $this->getVariable(self::CONFIG_ACCESS_LIFETIME),
       "scope" => $scope
     );
 
-    $this->storage->setAccessToken($token["access_token"], $client_id, $user_id, time() + $this->getVariable('access_token_lifetime', OAUTH2_DEFAULT_ACCESS_TOKEN_LIFETIME), $scope);
+    $this->storage->setAccessToken($token["access_token"], $client_id, $user_id, time() + $this->getVariable(self::CONFIG_ACCESS_LIFETIME), $scope);
 
     // Issue a refresh token also, if we support them
     if (in_array(OAUTH2_GRANT_TYPE_REFRESH_TOKEN, $this->storage->getSupportedGrantTypes())) {
       $token["refresh_token"] = $this->genAccessToken();
-      $this->storage->setRefreshToken($token["refresh_token"], $client_id, $user_id, time() + $this->getVariable('refresh_token_lifetime', OAUTH2_DEFAULT_REFRESH_TOKEN_LIFETIME), $scope);
+      $this->storage->setRefreshToken($token["refresh_token"], $client_id, $user_id, time() + $this->getVariable(self::CONFIG_REFRESH_LIFETIME), $scope);
       // If we've granted a new refresh token, expire the old one
-      if ($this->getVariable('_old_refresh_token'))
-        $this->storage->unsetRefreshToken($this->getVariable('_old_refresh_token'));
+      if ($this->oldRefreshToken)
+        $this->storage->unsetRefreshToken($this->oldRefreshToken);
+        unset($this->oldRefreshToken);
     }
 
     return $token;
@@ -1065,7 +979,7 @@ class OAuth2 {
    */
   private function createAuthCode($client_id, $user_id, $redirect_uri, $scope = NULL) {
     $code = $this->genAuthCode();
-    $this->storage->setAuthCode($code, $client_id, $user_id, $redirect_uri, time() + $this->getVariable('auth_code_lifetime', OAUTH2_DEFAULT_AUTH_CODE_LIFETIME), $scope);
+    $this->storage->setAuthCode($code, $client_id, $user_id, $redirect_uri, time() + $this->getVariable(self::CONFIG_AUTH_LIFETIME), $scope);
     return $code;
   }
 
@@ -1169,10 +1083,10 @@ class OAuth2 {
     if ($state)
       $result["query"]["state"] = $state;
 
-    if ($this->getVariable('display_error') && $error_description)
+    if ($this->getVariable(self::CONFIG_DISPLAY_ERROR) && $error_description)
       $result["query"]["error_description"] = $error_description;
 
-    if ($this->getVariable('display_error') && $error_uri)
+    if ($this->getVariable(self::CONFIG_DISPLAY_ERROR) && $error_uri)
       $result["query"]["error_uri"] = $error_uri;
 
     $this->doRedirectUriCallback($redirect_uri, $result);
@@ -1201,10 +1115,10 @@ class OAuth2 {
   private function errorJsonResponse($http_status_code, $error, $error_description = NULL, $error_uri = NULL) {
     $result['error'] = $error;
 
-    if ($this->getVariable('display_error') && $error_description)
+    if ($this->getVariable(self::CONFIG_DISPLAY_ERROR) && $error_description)
       $result["error_description"] = $error_description;
 
-    if ($this->getVariable('display_error') && $error_uri)
+    if ($this->getVariable(self::CONFIG_DISPLAY_ERROR) && $error_uri)
       $result["error_uri"] = $error_uri;
 
     header("HTTP/1.1 " . $http_status_code);
@@ -1252,10 +1166,10 @@ class OAuth2 {
     if ($error)
       $result .= ", error='" . $error . "'";
 
-    if ($this->getVariable('display_error') && $error_description)
+    if ($this->getVariable(self::CONFIG_DISPLAY_ERROR) && $error_description)
       $result .= ", error_description='" . $error_description . "'";
 
-    if ($this->getVariable('display_error') && $error_uri)
+    if ($this->getVariable(self::CONFIG_DISPLAY_ERROR) && $error_uri)
       $result .= ", error_uri='" . $error_uri . "'";
 
     if ($scope)

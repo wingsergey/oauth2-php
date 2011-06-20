@@ -7,7 +7,7 @@
  * Obviously not production-ready code, just simple and to the point.
  */
 
-include "lib/MongoOAuth2.inc";
+include "lib/MongoOAuth2.php";
 
 if ($_POST && isset($_POST["client_id"]) && isset($_POST["client_secret"]) && isset($_POST["redirect_uri"])) {
   $oauth = new MongoOAuth2();

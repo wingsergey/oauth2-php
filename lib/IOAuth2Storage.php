@@ -272,4 +272,45 @@ interface IOAuth2Storage {
 	 * @ingroup oauth2_section_4
 	 */
 	public function checkUserCredentials($client_id, $username, $password);
+
+	/**
+	 * Check restricted authorization response types of corresponding Client
+	 * identifier.
+	 *
+	 * If you want to restrict clients to certain authorization response types,
+	 * override this function.
+	 *
+	 * @param $client_id
+	 * Client identifier to be check with.
+	 * @param $response_type
+	 * Authorization response type to be check with, would be one of the
+	 * values contained in OAUTH2_AUTH_RESPONSE_TYPE_REGEXP.
+	 *
+	 * @return
+	 * TRUE if the authorization response type is supported by this
+	 * client identifier, and FALSE if it isn't.
+	 *
+	 * @ingroup oauth2_section_3
+	 */
+	protected function checkRestrictedAuthResponseType($client_id, $response_type);
+
+	/**
+	 * Check restricted grant types of corresponding client identifier.
+	 *
+	 * If you want to restrict clients to certain grant types, override this
+	 * function.
+	 *
+	 * @param $client_id
+	 * Client identifier to be check with.
+	 * @param $grant_type
+	 * Grant type to be check with, would be one of the values contained in
+	 * OAUTH2_GRANT_TYPE_REGEXP.
+	 *
+	 * @return
+	 * TRUE if the grant type is supported by this client identifier, and
+	 * FALSE if it isn't.
+	 *
+	 * @ingroup oauth2_section_4
+	 */
+	protected function checkRestrictedGrantType($client_id, $grant_type);
 }
