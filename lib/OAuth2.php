@@ -901,7 +901,7 @@ class OAuth2 {
       $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_INVALID_SCOPE, NULL, NULL, $input["state"]);
 
     // Return retreived client details together with input
-    return $input += $stored;
+    return ($input + $stored);
   }
 
   /**
