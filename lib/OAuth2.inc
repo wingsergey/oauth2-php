@@ -351,148 +351,22 @@ define("OAUTH2_ERROR_INSUFFICIENT_SCOPE", "insufficient_scope");
  * @author Updated to draft v10 by Aaron Parecki <aaron@parecki.com>.
  * @author Debug, coding style clean up and documented by Edison Wong <hswong3i@pantarei-design.com>.
  */
-abstract class OAuth2 {
+class OAuth2 {
 
   /**
    * Array of persistent variables stored.
    */
   protected $conf = array();
-
+  
   /**
-   * Returns a persistent variable.
-   *
-   * To avoid problems, always use lower case for persistent variable names.
-   *
-   * @param $name
-   *   The name of the variable to return.
-   * @param $default
-   *   The default value to use if this variable has never been set.
-   *
-   * @return
-   *   The value of the variable.
+   * 
+   * 
+   * @var IOAuth2Storage
    */
-  public function getVariable($name, $default = NULL) {
-    return isset($this->conf[$name]) ? $this->conf[$name] : $default;
-  }
+  protected $storage;
 
-  /**
-   * Sets a persistent variable.
-   *
-   * To avoid problems, always use lower case for persistent variable names.
-   *
-   * @param $name
-   *   The name of the variable to set.
-   * @param $value
-   *   The value to set.
-   */
-  public function setVariable($name, $value) {
-    $this->conf[$name] = $value;
-    return $this;
-  }
-
-  // Subclasses must implement the following functions.
-
-  /**
-   * Make sure that the client credentials is valid.
-   *
-   * @param $client_id
-   *   Client identifier to be check with.
-   * @param $client_secret
-   *   (optional) If a secret is required, check that they've given the right one.
-   *
-   * @return
-   *   TRUE if client credentials are valid, and MUST return FALSE if invalid.
-   *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-2.1
-   *
-   * @ingroup oauth2_section_2
-   */
-  abstract protected function checkClientCredentials($client_id, $client_secret = NULL);
-
-  /**
-   * Get the registered redirect URI of corresponding client_id.
-   *
-   * OAuth says we should store request URIs for each registered client.
-   * Implement this function to grab the stored URI for a given client id.
-   *
-   * @param $client_id
-   *   Client identifier to be check with.
-   *
-   * @return
-   *   Registered redirect URI of corresponding client identifier, and MUST
-   *   return FALSE if the given client does not exist or is invalid.
-   *
-   * @ingroup oauth2_section_3
-   */
-  abstract protected function getRedirectUri($client_id);
-
-  /**
-   * Look up the supplied oauth_token from storage.
-   *
-   * We need to retrieve access token data as we create and verify tokens.
-   *
-   * @param $oauth_token
-   *   oauth_token to be check with.
-   *
-   * @return
-   *   An associative array as below, and return NULL if the supplied oauth_token
-   *   is invalid:
-   *   - client_id: Stored client identifier.
-   *   - expires: Stored expiration in unix timestamp.
-   *   - scope: (optional) Stored scope values in space-separated string.
-   *
-   * @ingroup oauth2_section_5
-   */
-  abstract protected function getAccessToken($oauth_token);
-
-  /**
-   * Store the supplied access token values to storage.
-   *
-   * We need to store access token data as we create and verify tokens.
-   *
-   * @param $oauth_token
-   *   oauth_token to be stored.
-   * @param $client_id
-   *   Client identifier to be stored.
-   * @param $expires
-   *   Expiration to be stored.
-   * @param $scope
-   *   (optional) Scopes to be stored in space-separated string.
-   *
-   * @ingroup oauth2_section_4
-   */
-  abstract protected function setAccessToken($oauth_token, $client_id, $expires, $scope = NULL);
-
-  // Stuff that should get overridden by subclasses.
-  //
-  // I don't want to make these abstract, because then subclasses would have
-  // to implement all of them, which is too much work.
-  //
-  // So they're just stubs. Override the ones you need.
-
-  /**
-   * Return supported grant types.
-   *
-   * You should override this function with something, or else your OAuth
-   * provider won't support any grant types!
-   *
-   * @return
-   *   A list as below. If you support all grant types, then you'd do:
-   * @code
-   * return array(
-   *   OAUTH2_GRANT_TYPE_AUTH_CODE,
-   *   OAUTH2_GRANT_TYPE_USER_CREDENTIALS,
-   *   OAUTH2_GRANT_TYPE_ASSERTION,
-   *   OAUTH2_GRANT_TYPE_REFRESH_TOKEN,
-   *   OAUTH2_GRANT_TYPE_NONE,
-   * );
-   * @endcode
-   *
-   * @ingroup oauth2_section_4
-   */
-  protected function getSupportedGrantTypes() {
-    return array();
-  }
+  // Stuff that can get overridden by subclasses.
+  // Override the ones you need.
 
   /**
    * Return supported authorization response types.
@@ -587,219 +461,6 @@ abstract class OAuth2 {
     return TRUE;
   }
 
-  // Functions that help grant access tokens for various grant types.
-
-  /**
-   * Fetch authorization code data (probably the most common grant type).
-   *
-   * Retrieve the stored data for the given authorization code.
-   *
-   * Required for OAUTH2_GRANT_TYPE_AUTH_CODE.
-   *
-   * @param $code
-   *   Authorization code to be check with.
-   *
-   * @return
-   *   An associative array as below, and NULL if the code is invalid:
-   *   - client_id: Stored client identifier.
-   *   - redirect_uri: Stored redirect URI.
-   *   - expires: Stored expiration in unix timestamp.
-   *   - scope: (optional) Stored scope values in space-separated string.
-   *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.1.1
-   *
-   * @ingroup oauth2_section_4
-   */
-  protected function getAuthCode($code) {
-    return NULL;
-  }
-
-  /**
-   * Take the provided authorization code values and store them somewhere.
-   *
-   * This function should be the storage counterpart to getAuthCode().
-   *
-   * If storage fails for some reason, we're not currently checking for
-   * any sort of success/failure, so you should bail out of the script
-   * and provide a descriptive fail message.
-   *
-   * Required for OAUTH2_GRANT_TYPE_AUTH_CODE.
-   *
-   * @param $code
-   *   Authorization code to be stored.
-   * @param $client_id
-   *   Client identifier to be stored.
-   * @param $redirect_uri
-   *   Redirect URI to be stored.
-   * @param $expires
-   *   Expiration to be stored.
-   * @param $scope
-   *   (optional) Scopes to be stored in space-separated string.
-   *
-   * @ingroup oauth2_section_4
-   */
-  protected function setAuthCode($code, $client_id, $redirect_uri, $expires, $scope = NULL) {
-  }
-
-  /**
-   * Grant access tokens for basic user credentials.
-   *
-   * Check the supplied username and password for validity.
-   *
-   * You can also use the $client_id param to do any checks required based
-   * on a client, if you need that.
-   *
-   * Required for OAUTH2_GRANT_TYPE_USER_CREDENTIALS.
-   *
-   * @param $client_id
-   *   Client identifier to be check with.
-   * @param $username
-   *   Username to be check with.
-   * @param $password
-   *   Password to be check with.
-   *
-   * @return
-   *   TRUE if the username and password are valid, and FALSE if it isn't.
-   *   Moreover, if the username and password are valid, and you want to
-   *   verify the scope of a user's access, return an associative array
-   *   with the scope values as below. We'll check the scope you provide
-   *   against the requested scope before providing an access token:
-   * @code
-   * return array(
-   *   'scope' => <stored scope values (space-separated string)>,
-   * );
-   * @endcode
-   *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.1.2
-   *
-   * @ingroup oauth2_section_4
-   */
-  protected function checkUserCredentials($client_id, $username, $password) {
-    return FALSE;
-  }
-
-  /**
-   * Grant access tokens for assertions.
-   *
-   * Check the supplied assertion for validity.
-   *
-   * You can also use the $client_id param to do any checks required based
-   * on a client, if you need that.
-   *
-   * Required for OAUTH2_GRANT_TYPE_ASSERTION.
-   *
-   * @param $client_id
-   *   Client identifier to be check with.
-   * @param $assertion_type
-   *   The format of the assertion as defined by the authorization server.
-   * @param $assertion
-   *   The assertion.
-   *
-   * @return
-   *   TRUE if the assertion is valid, and FALSE if it isn't. Moreover, if
-   *   the assertion is valid, and you want to verify the scope of an access
-   *   request, return an associative array with the scope values as below.
-   *   We'll check the scope you provide against the requested scope before
-   *   providing an access token:
-   * @code
-   * return array(
-   *   'scope' => <stored scope values (space-separated string)>,
-   * );
-   * @endcode
-   *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.1.3
-   *
-   * @ingroup oauth2_section_4
-   */
-  protected function checkAssertion($client_id, $assertion_type, $assertion) {
-    return FALSE;
-  }
-
-  /**
-   * Grant refresh access tokens.
-   *
-   * Retrieve the stored data for the given refresh token.
-   *
-   * Required for OAUTH2_GRANT_TYPE_REFRESH_TOKEN.
-   *
-   * @param $refresh_token
-   *   Refresh token to be check with.
-   *
-   * @return
-   *   An associative array as below, and NULL if the refresh_token is
-   *   invalid:
-   *   - client_id: Stored client identifier.
-   *   - expires: Stored expiration unix timestamp.
-   *   - scope: (optional) Stored scope values in space-separated string.
-   *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.1.4
-   *
-   * @ingroup oauth2_section_4
-   */
-  protected function getRefreshToken($refresh_token) {
-    return NULL;
-  }
-
-  /**
-   * Take the provided refresh token values and store them somewhere.
-   *
-   * This function should be the storage counterpart to getRefreshToken().
-   *
-   * If storage fails for some reason, we're not currently checking for
-   * any sort of success/failure, so you should bail out of the script
-   * and provide a descriptive fail message.
-   *
-   * Required for OAUTH2_GRANT_TYPE_REFRESH_TOKEN.
-   *
-   * @param $refresh_token
-   *   Refresh token to be stored.
-   * @param $client_id
-   *   Client identifier to be stored.
-   * @param $expires
-   *   expires to be stored.
-   * @param $scope
-   *   (optional) Scopes to be stored in space-separated string.
-   *
-   * @ingroup oauth2_section_4
-   */
-  protected function setRefreshToken($refresh_token, $client_id, $expires, $scope = NULL) {
-    return;
-  }
-
-  /**
-   * Expire a used refresh token.
-   *
-   * This is not explicitly required in the spec, but is almost implied.
-   * After granting a new refresh token, the old one is no longer useful and
-   * so should be forcibly expired in the data store so it can't be used again.
-   *
-   * If storage fails for some reason, we're not currently checking for
-   * any sort of success/failure, so you should bail out of the script
-   * and provide a descriptive fail message.
-   *
-   * @param $refresh_token
-   *   Refresh token to be expirse.
-   *
-   * @ingroup oauth2_section_4
-   */
-  protected function unsetRefreshToken($refresh_token) {
-    return;
-  }
-
-  /**
-   * Grant access tokens for the "none" grant type.
-   *
-   * Not really described in the IETF Draft, so I just left a method
-   * stub... Do whatever you want!
-   *
-   * Required for OAUTH2_GRANT_TYPE_NONE.
-   *
-   * @ingroup oauth2_section_4
-   */
-  protected function checkNoneAccess($client_id) {
-    return FALSE;
-  }
-
   /**
    * Get default authentication realm for WWW-Authenticate header.
    *
@@ -831,12 +492,45 @@ abstract class OAuth2 {
    *   - display_error: (optional) Whether to show verbose error messages in
    *     the response.
    */
-  public function __construct($config = array()) {
+  public function __construct(IOAuth2Storage $storage, $config = array()) {
+    $this->storage = $storage;
     foreach ($config as $name => $value) {
       $this->setVariable($name, $value);
     }
   }
 
+  /**
+   * Returns a persistent variable.
+   *
+   * @param $name
+   *   The name of the variable to return.
+   * @param $default
+   *   The default value to use if this variable has never been set.
+   *
+   * @return
+   *   The value of the variable.
+   */
+  public function getVariable($name, $default = NULL) {
+  	$name = strtolower($name);
+  	
+    return isset($this->conf[$name]) ? $this->conf[$name] : $default;
+  }
+
+  /**
+   * Sets a persistent variable.
+   *
+   * @param $name
+   *   The name of the variable to set.
+   * @param $value
+   *   The value to set.
+   */
+  public function setVariable($name, $value) {
+  	$name = strtolower($name);
+  	
+    $this->conf[$name] = $value;
+    return $this;
+  }
+  
   // Resource protecting (Section 5).
 
   /**
@@ -978,12 +672,15 @@ abstract class OAuth2 {
    *
    * This would be called from the "/token" endpoint as defined in the spec.
    * Obviously, you can call your endpoint whatever you want.
+   * 
+   * @param $inputData - The draft specifies that the parameters should be
+   * retreived from POST, but you can override to whatever method you like.
    *
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4
    *
    * @ingroup oauth2_section_4
    */
-  public function grantAccessToken() {
+  public function grantAccessToken(array $inputData = NULL) {
     $filters = array(
       "grant_type" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => OAUTH2_GRANT_TYPE_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
       "scope" => array("flags" => FILTER_REQUIRE_SCALAR),
@@ -996,14 +693,17 @@ abstract class OAuth2 {
       "refresh_token" => array("flags" => FILTER_REQUIRE_SCALAR),
     );
 
-    $input = filter_input_array(INPUT_POST, $filters);
+    if (!isset($inputData)) {
+    	$inputData = $_POST;
+    }
+    $input = filter_var_array($inputData, $filters);
 
     // Grant Type must be specified.
     if (!$input["grant_type"])
       $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'Invalid grant_type parameter or parameter missing');
 
     // Make sure we've implemented the requested grant type
-    if (!in_array($input["grant_type"], $this->getSupportedGrantTypes()))
+    if (!in_array($input["grant_type"], $this->storage->getSupportedGrantTypes()))
       $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_UNSUPPORTED_GRANT_TYPE);
 
     // Authorize the client
@@ -1019,13 +719,13 @@ abstract class OAuth2 {
     switch ($input["grant_type"]) {
       case OAUTH2_GRANT_TYPE_AUTH_CODE:
         if (!$input["code"] || !$input["redirect_uri"])
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST);
+          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'Missing parameters. "code" and "redirect_uri" required');
 
-        $stored = $this->getAuthCode($input["code"]);
+        $stored = $this->storage->getAuthCode($input["code"]);
 
         // Ensure that the input uri starts with the stored uri
         if ($stored === NULL || (strcasecmp(substr($input["redirect_uri"], 0, strlen($stored["redirect_uri"])), $stored["redirect_uri"]) !== 0) || $client[0] != $stored["client_id"])
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_GRANT);
+          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_GRANT, "Refresh token doesn't exist or is invalid for the client");
 
         if ($stored["expires"] < time())
           $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_EXPIRED_TOKEN);
@@ -1035,7 +735,7 @@ abstract class OAuth2 {
         if (!$input["username"] || !$input["password"])
           $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'Missing parameters. "username" and "password" required');
 
-        $stored = $this->checkUserCredentials($client[0], $input["username"], $input["password"]);
+        $stored = $this->storage->checkUserCredentials($client[0], $input["username"], $input["password"]);
 
         if ($stored === FALSE)
           $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_GRANT);
@@ -1045,7 +745,7 @@ abstract class OAuth2 {
         if (!$input["assertion_type"] || !$input["assertion"])
           $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST);
 
-        $stored = $this->checkAssertion($client[0], $input["assertion_type"], $input["assertion"]);
+        $stored = $this->storage->checkAssertion($client[0], $input["assertion_type"], $input["assertion"]);
 
         if ($stored === FALSE)
           $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_GRANT);
@@ -1055,7 +755,7 @@ abstract class OAuth2 {
         if (!$input["refresh_token"])
           $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'No "refresh_token" parameter found');
 
-        $stored = $this->getRefreshToken($input["refresh_token"]);
+        $stored = $this->storage->getRefreshToken($input["refresh_token"]);
 
         if ($stored === NULL || $client[0] != $stored["client_id"])
           $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_GRANT);
@@ -1064,11 +764,11 @@ abstract class OAuth2 {
           $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_EXPIRED_TOKEN);
 
         // store the refresh token locally so we can delete it when a new refresh token is generated
-        $this->setVariable('_old_refresh_token', $stored["token"]);
+        $this->setVariable('_old_refresh_token', $stored["refresh_token"]);
 
         break;
       case OAUTH2_GRANT_TYPE_NONE:
-        $stored = $this->checkNoneAccess($client[0]);
+        $stored = $this->storage->checkNoneAccess($client[0]);
 
         if ($stored === FALSE)
           $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST);
@@ -1081,7 +781,7 @@ abstract class OAuth2 {
     if (!$input["scope"])
       $input["scope"] = NULL;
 
-    $token = $this->createAccessToken($client[0], $input["scope"]);
+    $token = $this->createAccessToken($client[0], $stored['user_id'], $stored['scope']);
 
     $this->sendJsonHeaders();
     echo json_encode($token);
@@ -1129,6 +829,8 @@ abstract class OAuth2 {
   /**
    * Pull the authorization request data out of the HTTP request.
    *
+   * @param $inputData - The draft specifies that the parameters should be
+   * retreived from POST, but you can override to whatever method you like.
    * @return
    *   The authorization parameters so the authorization server can prompt
    *   the user for approval if valid.
@@ -1137,7 +839,7 @@ abstract class OAuth2 {
    *
    * @ingroup oauth2_section_3
    */
-  public function getAuthorizeParams() {
+  public function getAuthorizeParams(array $inputData = NULL) {
     $filters = array(
       "client_id" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => OAUTH2_CLIENT_ID_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
       "response_type" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => OAUTH2_AUTH_RESPONSE_TYPE_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
@@ -1146,7 +848,10 @@ abstract class OAuth2 {
       "scope" => array("flags" => FILTER_REQUIRE_SCALAR),
     );
 
-    $input = filter_input_array(INPUT_GET, $filters);
+    if (!isset($inputData)) {
+    	$inputData = $_POST;
+    }
+    $input = filter_var_array($inputData, $filters);
 
     // Make sure a valid client id was supplied
     if (!$input["client_id"]) {
@@ -1158,30 +863,30 @@ abstract class OAuth2 {
 
     // redirect_uri is not required if already established via other channels
     // check an existing redirect URI against the one supplied
-    $redirect_uri = $this->getRedirectUri($input["client_id"]);
+    $stored = $this->getClientDetails($input["client_id"]);
 
     // At least one of: existing redirect URI or input redirect URI must be specified
-    if (!$redirect_uri && !$input["redirect_uri"])
+    if (!$stored && !$input["redirect_uri"])
       $this->errorJsonResponse(OAUTH2_HTTP_FOUND, OAUTH2_ERROR_INVALID_REQUEST);
 
     // getRedirectUri() should return FALSE if the given client ID is invalid
     // this probably saves us from making a separate db call, and simplifies the method set
-    if ($redirect_uri === FALSE)
+    if ($stored === FALSE)
       $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_INVALID_CLIENT, NULL, NULL, $input["state"]);
 
     // If there's an existing uri and one from input, verify that they match
-    if ($redirect_uri && $input["redirect_uri"]) {
+    if ($stored['redirect_uri'] && $input["redirect_uri"]) {
       // Ensure that the input uri starts with the stored uri
-      if (strcasecmp(substr($input["redirect_uri"], 0, strlen($redirect_uri)), $redirect_uri) !== 0)
+      if (strcasecmp(substr($input["redirect_uri"], 0, strlen($stored['redirect_uri'])), $stored['redirect_uri']) !== 0)
         $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_REDIRECT_URI_MISMATCH, NULL, NULL, $input["state"]);
     }
-    elseif ($redirect_uri) { // They did not provide a uri from input, so use the stored one
-      $input["redirect_uri"] = $redirect_uri;
+    elseif ($stored['redirect_uri']) { // They did not provide a uri from input, so use the stored one
+      $input["redirect_uri"] = $stored['redirect_uri'];
     }
 
     // type and client_id are required
     if (!$input["response_type"])
-      $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_INVALID_REQUEST, 'Invalid response type.', NULL, $input["state"]);
+      $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_INVALID_REQUEST, 'Invalid or missing response type.', NULL, $input["state"]);
 
     // Check requested auth response type against the list of supported types
     if (array_search($input["response_type"], $this->getSupportedAuthResponseTypes()) === FALSE)
@@ -1195,7 +900,8 @@ abstract class OAuth2 {
     if ($input["scope"] && !$this->checkScope($input["scope"], $this->getSupportedScopes()))
       $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_INVALID_SCOPE, NULL, NULL, $input["state"]);
 
-    return $input;
+    // Return retreived client details together with input
+    return $input += $stored;
   }
 
   /**
@@ -1207,6 +913,8 @@ abstract class OAuth2 {
    *
    * @param $is_authorized
    *   TRUE or FALSE depending on whether the user authorized the access.
+   * @param $user_id
+   *   Identifier of user who authorized the client
    * @param $params
    *   An associative array as below:
    *   - response_type: The requested response: an access token, an
@@ -1224,7 +932,7 @@ abstract class OAuth2 {
    *
    * @ingroup oauth2_section_3
    */
-  public function finishClientAuthorization($is_authorized, $params = array()) {
+  public function finishClientAuthorization($is_authorized, $user_id = NULL, $params = array()) {
     $params += array(
       'scope' => NULL,
       'state' => NULL,
@@ -1239,10 +947,10 @@ abstract class OAuth2 {
     }
     else {
       if ($response_type == OAUTH2_AUTH_RESPONSE_TYPE_AUTH_CODE || $response_type == OAUTH2_AUTH_RESPONSE_TYPE_CODE_AND_TOKEN)
-        $result["query"]["code"] = $this->createAuthCode($client_id, $redirect_uri, $scope);
+        $result["query"]["code"] = $this->createAuthCode($client_id, $user_id, $redirect_uri, $scope);
 
       if ($response_type == OAUTH2_AUTH_RESPONSE_TYPE_ACCESS_TOKEN || $response_type == OAUTH2_AUTH_RESPONSE_TYPE_CODE_AND_TOKEN)
-        $result["fragment"] = $this->createAccessToken($client_id, $scope);
+        $result["fragment"] = $this->createAccessToken($client_id, $user_id, $scope);
     }
 
     $this->doRedirectUriCallback($redirect_uri, $result);
@@ -1317,22 +1025,23 @@ abstract class OAuth2 {
    *
    * @ingroup oauth2_section_4
    */
-  protected function createAccessToken($client_id, $scope = NULL) {
+  protected function createAccessToken($client_id, $user_id, $scope=NULL) {
+  	
     $token = array(
       "access_token" => $this->genAccessToken(),
       "expires_in" => $this->getVariable('access_token_lifetime', OAUTH2_DEFAULT_ACCESS_TOKEN_LIFETIME),
       "scope" => $scope
     );
 
-    $this->setAccessToken($token["access_token"], $client_id, time() + $this->getVariable('access_token_lifetime', OAUTH2_DEFAULT_ACCESS_TOKEN_LIFETIME), $scope);
+    $this->storage->setAccessToken($token["access_token"], $client_id, $user_id, time() + $this->getVariable('access_token_lifetime', OAUTH2_DEFAULT_ACCESS_TOKEN_LIFETIME), $scope);
 
     // Issue a refresh token also, if we support them
-    if (in_array(OAUTH2_GRANT_TYPE_REFRESH_TOKEN, $this->getSupportedGrantTypes())) {
+    if (in_array(OAUTH2_GRANT_TYPE_REFRESH_TOKEN, $this->storage->getSupportedGrantTypes())) {
       $token["refresh_token"] = $this->genAccessToken();
-      $this->setRefreshToken($token["refresh_token"], $client_id, time() + $this->getVariable('refresh_token_lifetime', OAUTH2_DEFAULT_REFRESH_TOKEN_LIFETIME), $scope);
+      $this->storage->setRefreshToken($token["refresh_token"], $client_id, $user_id, time() + $this->getVariable('refresh_token_lifetime', OAUTH2_DEFAULT_REFRESH_TOKEN_LIFETIME), $scope);
       // If we've granted a new refresh token, expire the old one
       if ($this->getVariable('_old_refresh_token'))
-        $this->unsetRefreshToken($this->getVariable('_old_refresh_token'));
+        $this->storage->unsetRefreshToken($this->getVariable('_old_refresh_token'));
     }
 
     return $token;
@@ -1354,9 +1063,9 @@ abstract class OAuth2 {
    *
    * @ingroup oauth2_section_3
    */
-  private function createAuthCode($client_id, $redirect_uri, $scope = NULL) {
+  private function createAuthCode($client_id, $user_id, $redirect_uri, $scope = NULL) {
     $code = $this->genAuthCode();
-    $this->setAuthCode($code, $client_id, $redirect_uri, time() + $this->getVariable('auth_code_lifetime', OAUTH2_DEFAULT_AUTH_CODE_LIFETIME), $scope);
+    $this->storage->setAuthCode($code, $client_id, $user_id, $redirect_uri, time() + $this->getVariable('auth_code_lifetime', OAUTH2_DEFAULT_AUTH_CODE_LIFETIME), $scope);
     return $code;
   }
 
@@ -1372,7 +1081,7 @@ abstract class OAuth2 {
    * @ingroup oauth2_section_4
    */
   protected function genAccessToken() {
-    return md5(base64_encode(pack('N6', mt_rand(), mt_rand(), mt_rand(), mt_rand(), mt_rand(), uniqid())));
+    return md5(base64_encode(pack('N6', mt_rand(), mt_rand(), mt_rand(), mt_rand(), microtime(true), uniqid(mt_rand(), true))));
   }
 
   /**
@@ -1387,7 +1096,7 @@ abstract class OAuth2 {
    * @ingroup oauth2_section_3
    */
   protected function genAuthCode() {
-    return md5(base64_encode(pack('N6', mt_rand(), mt_rand(), mt_rand(), mt_rand(), mt_rand(), uniqid())));
+    return md5(base64_encode(pack('N6', mt_rand(), mt_rand(), mt_rand(), mt_rand(), microtime(true), uniqid(mt_rand(), true))));
   }
 
   /**
