@@ -22,7 +22,7 @@
  * @author Tim Ridgely <tim.ridgely@gmail.com>
  * @author Aaron Parecki <aaron@parecki.com>
  * @author Edison Wong <hswong3i@pantarei-design.com>
- * @author Refactoring by David Rochwerger <catch.dave@gmail.com>
+ * @author David Rochwerger <catch.dave@gmail.com>
  *
  * @see http://code.google.com/p/oauth2-php/
  */
@@ -64,9 +64,8 @@ class OAuth2 {
    * @see OAuth2::setDefaultOptions()
    */
   const DEFAULT_ACCESS_TOKEN_LIFETIME  = 3600; 
-  const DEFAULT_REFRESH_TOKEN_LIFETIME = 30; 
-  const DEFAULT_AUTH_CODE_LIFETIME     = 1209600;
-  const DEFAULT_WWW_REALM              = 'Service';
+  const DEFAULT_REFRESH_TOKEN_LIFETIME = 1209600; 
+  const DEFAULT_AUTH_CODE_LIFETIME     = 30;
   
   /**
    * Configurable options.
@@ -79,7 +78,6 @@ class OAuth2 {
   const CONFIG_DISPLAY_ERROR     = 'display_error';          // Whether to show verbose error messages in the response.
   const CONFIG_SUPPORTED_AUTH    = 'supported_auth_types';   // Array of supported auth types
   const CONFIG_SUPPORTED_SCOPES  = 'supported_scopes';       // Array of scopes you want to support
-  const CONFIG_DEFAULT_REALM     = 'default_auth_realm';     // Realm you want to send in a WWW-Authenticate header
   
   /**
    * List of possible authentication response types.
@@ -348,7 +346,6 @@ class OAuth2 {
   		self::CONFIG_ACCESS_LIFETIME  => self::DEFAULT_ACCESS_TOKEN_LIFETIME,
   		self::CONFIG_REFRESH_LIFETIME => self::DEFAULT_REFRESH_TOKEN_LIFETIME, 
   		self::CONFIG_AUTH_LIFETIME    => self::DEFAULT_AUTH_CODE_LIFETIME,
-  		self::CONFIG_DEFAULT_REALM    => self::DEFAULT_WWW_REALM,
   		self::CONFIG_SUPPORTED_AUTH   => array(
   			self::RESPONSE_TYPE_AUTH_CODE,
       		self::RESPONSE_TYPE_ACCESS_TOKEN,
@@ -422,32 +419,28 @@ class OAuth2 {
    * @param $exit_scope
    *   If TRUE the access token does not have the required scope(s), exit,
    *   otherwise return FALSE.
-   * @param $realm
-   *   If you want to specify a particular realm for the WWW-Authenticate
-   *   header, supply it here.
-   * @return array - Token
-   *
+   * @return array
+   *   Token
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5
    *
    * @ingroup oauth2_section_5
    */
-  public function verifyAccessToken($token_param, $scope = NULL, $exit_not_present = TRUE, $exit_invalid = TRUE, $exit_expired = TRUE, $exit_scope = TRUE, $realm = NULL) {
-    $token_param = $this->getAccessTokenParams();
+  public function verifyAccessToken($token_param, $scope = NULL, $exit_not_present = TRUE, $exit_invalid = TRUE, $exit_expired = TRUE, $exit_scope = TRUE) {
     if ($token_param === FALSE) // Access token was not provided
-      return $exit_not_present ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_BAD_REQUEST, $realm, self::ERROR_INVALID_REQUEST, 'The request is missing a required parameter, includes an unsupported parameter or parameter value, repeats the same parameter, uses more than one method for including an access token, or is otherwise malformed.', NULL, $scope) : FALSE;
+      return $exit_not_present ? $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'The request is missing a required parameter, includes an unsupported parameter or parameter value, repeats the same parameter, uses more than one method for including an access token, or is otherwise malformed.', NULL) : FALSE;
     // Get the stored token data (from the implementing subclass)
     $token = $this->storage->getAccessToken($token_param);
     if ($token === NULL)
-      return $exit_invalid ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_UNAUTHORIZED, $realm, self::ERROR_INVALID_TOKEN, 'The access token provided is invalid.', NULL, $scope) : FALSE;
+      return $exit_invalid ? $this->handleError(self::HTTP_UNAUTHORIZED, self::ERROR_INVALID_TOKEN, 'The access token provided is invalid.', NULL) : FALSE;
 
     // Check token expiration (I'm leaving this check separated, later we'll fill in better error messages)
     if (isset($token["expires"]) && time() > $token["expires"])
-      return $exit_expired ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_UNAUTHORIZED, $realm, self::ERROR_EXPIRED_TOKEN, 'The access token provided has expired.', NULL, $scope) : FALSE;
+      return $exit_expired ? $this->handleError(self::HTTP_UNAUTHORIZED, self::ERROR_EXPIRED_TOKEN, 'The access token provided has expired.', NULL) : FALSE;
 
     // Check scope, if provided
     // If token doesn't have a scope, it's NULL/empty, or it's insufficient, then throw an error
     if ($scope && (!isset($token["scope"]) || !$token["scope"] || !$this->checkScope($scope, $token["scope"])))
-      return $exit_scope ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_FORBIDDEN, $realm, self::ERROR_INSUFFICIENT_SCOPE, 'The request requires higher privileges than provided by the access token.', NULL, $scope) : FALSE;
+      return $exit_scope ? $this->handleError(self::HTTP_FORBIDDEN, self::ERROR_INSUFFICIENT_SCOPE, 'The request requires higher privileges than provided by the access token.', NULL) : FALSE;
 
     return $token;
   }
@@ -472,6 +465,8 @@ class OAuth2 {
       $required_scope = explode(" ", $required_scope);
 
     $available_scope = $this->getVariable(self::CONFIG_SUPPORTED_SCOPES);
+    if (!is_array($available_scope))
+      $available_scope = explode(" ", $available_scope);
 
     return (count(array_diff($required_scope, $available_scope)) == 0);
   }
@@ -1072,59 +1067,6 @@ class OAuth2 {
     header("HTTP/1.1 " . $http_status_code);
     $this->sendJsonHeaders();
     echo json_encode($result);
-
-    exit;
-  }
-
-  /**
-   * Send a 401 unauthorized header with the given realm and an error, if
-   * provided.
-   *
-   * @param $http_status_code
-   *   HTTP status code message as predefined.
-   * @param $realm
-   *   The "realm" attribute is used to provide the protected resources
-   *   partition as defined by [RFC2617].
-   * @param $scope
-   *   A space-delimited list of scope values indicating the required scope
-   *   of the access token for accessing the requested resource.
-   * @param $error
-   *   The "error" attribute is used to provide the client with the reason
-   *   why the access request was declined.
-   * @param $error_description
-   *   (optional) The "error_description" attribute provides a human-readable text
-   *   containing additional information, used to assist in the understanding
-   *   and resolution of the error occurred.
-   * @param $error_uri
-   *   (optional) The "error_uri" attribute provides a URI identifying a human-readable
-   *   web page with information about the error, used to offer the end-user
-   *   with additional information about the error. If the value is not an
-   *   absolute URI, it is relative to the URI of the requested protected
-   *   resource.
-   *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2
-   *
-   * @ingroup oauth2_error
-   */
-  private function errorWWWAuthenticateResponseHeader($http_status_code, $realm, $error, $error_description = NULL, $error_uri = NULL, $scope = NULL) {
-    $realm = $realm === NULL ? $this->getDefaultAuthenticationRealm() : $realm;
-
-    $result = "WWW-Authenticate: OAuth realm='" . $realm . "'";
-
-    if ($error)
-      $result .= ", error='" . $error . "'";
-
-    if ($this->getVariable(self::CONFIG_DISPLAY_ERROR) && $error_description)
-      $result .= ", error_description='" . $error_description . "'";
-
-    if ($this->getVariable(self::CONFIG_DISPLAY_ERROR) && $error_uri)
-      $result .= ", error_uri='" . $error_uri . "'";
-
-    if ($scope)
-      $result .= ", scope='" . $scope . "'";
-
-    header("HTTP/1.1 ". $http_status_code);
-    header($result);
 
     exit;
   }
