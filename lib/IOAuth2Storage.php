@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * All storage engines need to implement this interface in order to use OAuth2 server
+ * 
+ * @author David Rochwerger <catch.dave@gmail.com>
+ */
 interface IOAuth2Storage {
 
 	/**
@@ -292,7 +296,7 @@ interface IOAuth2Storage {
 	 *
 	 * @ingroup oauth2_section_3
 	 */
-	protected function checkRestrictedAuthResponseType($client_id, $response_type);
+	public function checkRestrictedAuthResponseType($client_id, $response_type);
 
 	/**
 	 * Check restricted grant types of corresponding client identifier.
@@ -312,5 +316,11 @@ interface IOAuth2Storage {
 	 *
 	 * @ingroup oauth2_section_4
 	 */
-	protected function checkRestrictedGrantType($client_id, $grant_type);
+	public function checkRestrictedGrantType($client_id, $grant_type);
+	
+	/**
+	 * 
+	 * Enter description here ...
+	 */
+	public function getSupportedGrantTypes();
 }

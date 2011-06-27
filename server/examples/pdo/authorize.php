@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Sample authorize endpoint.
@@ -9,12 +8,25 @@
  * In reality, you'd probably use a nifty framework to handle most of the crud for you.
  */
 
-require "lib/PDOOAuth2.php";
+require "lib/OAuth2StoragePDO.php";
 
-$oauth = new PDOOAuth2();
+/*
+ * You would need to authenticate the user before authorization.
+ * 
+ * Below is some psudeo-code to show what you might do:
+ * 
+session_start();
+if (!isLoggedIn()) {
+	redirectToLoginPage();
+	exit();
+}
+ */
+
+$oauth = new OAuth2(new OAuth2StoragePDO());
 
 if ($_POST) {
-  $oauth->finishClientAuthorization($_POST["accept"] == "Yep", $_POST);
+  $userId = $_SESSION['user_id']; // Use whatever method you have for identifying users.
+  $oauth->finishClientAuthorization($_POST["accept"] == "Yep", $userId, $_POST);
 }
 
 $auth_params = $oauth->getAuthorizeParams();

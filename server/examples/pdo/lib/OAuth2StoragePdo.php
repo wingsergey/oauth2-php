@@ -8,13 +8,13 @@
  *   new PDOOAuth2( new PDO('mysql:dbname=mydb;host=localhost', 'user', 'pass') );
  */
 
-include '../../../lib/OAuth2.php';
-include '../../../lib/IOAuth2Storage.php';
+require_once __DIR__.'/../../../../lib/OAuth2.php';
+require_once __DIR__.'/../../../../lib/IOAuth2Storage.php';
 
 /**
  * PDO storage engine for the OAuth2 Library.
  */
-class PDOOAuth2 implements IOAuth2Storage {
+class OAuth2StoragePDO implements IOAuth2Storage {
 
   /**
    * Change this to something unique for your system
@@ -82,7 +82,7 @@ class PDOOAuth2 implements IOAuth2Storage {
     try {
       $client_secret = $this->hash($client_secret, $client_id);
       
-      $sql = 'INSERT INTO '. TABLE_CLIENTS .' (client_id, client_secret, redirect_uri) VALUES (:client_id, :client_secret, :redirect_uri)';
+      $sql = 'INSERT INTO '.TABLE_CLIENTS.' (client_id, client_secret, redirect_uri) VALUES (:client_id, :client_secret, :redirect_uri)';
       $stmt = $this->db->prepare($sql);
       $stmt->bindParam(':client_id', $client_id, PDO::PARAM_STR);
       $stmt->bindParam(':client_secret', $client_secret, PDO::PARAM_STR);
@@ -99,7 +99,7 @@ class PDOOAuth2 implements IOAuth2Storage {
    */
   public function checkClientCredentials($client_id, $client_secret = NULL) {
     try {
-      $sql = 'SELECT client_secret FROM clients WHERE client_id = :client_id';
+      $sql = 'SELECT client_secret FROM '.TABLE_CLIENTS.' WHERE client_id = :client_id';
       $stmt = $this->db->prepare($sql);
       $stmt->bindParam(':client_id', $client_id, PDO::PARAM_STR);
       $stmt->execute();
@@ -120,7 +120,7 @@ class PDOOAuth2 implements IOAuth2Storage {
    */
   public function getClientDetails($client_id) {
     try {
-      $sql = 'SELECT redirect_uri FROM clients WHERE client_id = :client_id';
+      $sql = 'SELECT redirect_uri FROM '.TABLE_CLIENTS.' WHERE client_id = :client_id';
       $stmt = $this->db->prepare($sql);
       $stmt->bindParam(':client_id', $client_id, PDO::PARAM_STR);
       $stmt->execute();
@@ -190,7 +190,7 @@ class PDOOAuth2 implements IOAuth2Storage {
    */
   public function getAuthCode($code) {
     try {
-      $sql = 'SELECT code, client_id, user_id, redirect_uri, expires, scope FROM '. self::TABLE_CODES .' auth_codes WHERE code = :code';
+      $sql = 'SELECT code, client_id, user_id, redirect_uri, expires, scope FROM '.self::TABLE_CODES.' auth_codes WHERE code = :code';
       $stmt = $this->db->prepare($sql);
       $stmt->bindParam(':code', $code, PDO::PARAM_STR);
       $stmt->execute();
@@ -208,7 +208,7 @@ class PDOOAuth2 implements IOAuth2Storage {
    */
   public function setAuthCode($code, $client_id, $user_id, $redirect_uri, $expires, $scope = NULL) {
     try {
-      $sql = 'INSERT INTO '. self::TABLE_CLIENTS .' (code, client_id, user_id, redirect_uri, expires, scope) VALUES (:code, :client_id, :user_id, :redirect_uri, :expires, :scope)';
+      $sql = 'INSERT INTO '.self::TABLE_CODES.' (code, client_id, user_id, redirect_uri, expires, scope) VALUES (:code, :client_id, :user_id, :redirect_uri, :expires, :scope)';
       $stmt = $this->db->prepare($sql);
       $stmt->bindParam(':code', $code, PDO::PARAM_STR);
       $stmt->bindParam(':client_id', $client_id, PDO::PARAM_STR);
@@ -221,6 +221,15 @@ class PDOOAuth2 implements IOAuth2Storage {
     } catch (PDOException $e) {
       $this->handleException($e);
     }
+  }
+  
+  /**
+   * This implentation supports auth code and refresh tokens.
+   * 
+   * @see IOAuth2Storage::getSupportedGrantTypes()
+   */
+  public function getSupportedGrantTypes() {
+    return array(OAUTH2_GRANT_TYPE_AUTH_CODE, OAUTH2_GRANT_TYPE_REFRESH_TOKEN);
   }
   
   /**
@@ -247,14 +256,14 @@ class PDOOAuth2 implements IOAuth2Storage {
   /**
    * @see IOAuth2Storage::checkRestrictedAuthResponseType()
    */
-  protected function checkRestrictedAuthResponseType($client_id, $response_type) {
+  public function checkRestrictedAuthResponseType($client_id, $response_type) {
     return TRUE; // Not implemented
   }
 
   /**
    * @see IOAuth2Storage::checkRestrictedGrantType()
    */
-  protected function checkRestrictedGrantType($client_id, $grant_type) {
+  public function checkRestrictedGrantType($client_id, $grant_type) {
     return TRUE; // Not implemented
   }
   

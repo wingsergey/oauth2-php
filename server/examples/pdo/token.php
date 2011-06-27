@@ -9,7 +9,7 @@
  * In reality, you'd probably use a nifty framework to handle most of the crud for you.
  */
 
-require "lib/PDOOAuth2.php";
+require "lib/OAuth2StoragePDO.php";
 
-$oauth = new PDOOAuth2();
+$oauth = new OAuth2(new OAuth2StoragePDO());
 $oauth->grantAccessToken();

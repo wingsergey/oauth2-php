@@ -1,15 +1,4 @@
 <?php
-
-/**
- * The default Cache Lifetime (in seconds).
- */
-define("OAUTH2_DEFAULT_EXPIRES_IN", 3600);
-
-/**
- * The default Base domain for the Cookie.
- */
-define("OAUTH2_DEFAULT_BASE_DOMAIN", '');
-
 /**
  * OAuth2.0 draft v10 client-side implementation.
  *
@@ -19,6 +8,16 @@ define("OAUTH2_DEFAULT_BASE_DOMAIN", '');
  * @sa <a href="https://github.com/facebook/php-sdk">Facebook PHP SDK</a>.
  */
 abstract class OAuth2Client {
+
+ /**
+  * The default Cache Lifetime (in seconds).
+  */
+  const DEFAULT_EXPIRES_IN = 3600;
+
+ /**
+  * The default Base domain for the Cookie.
+  */
+  const DEFAULT_BASE_DOMAIN = '';
 
   /**
    * Array of persistent variables stored.
@@ -119,7 +118,7 @@ abstract class OAuth2Client {
    * if it is provided from server with $_REQUEST. For sure, if it is provided
    * by server it should follow our session object format.
    *
-   * Session object provided by server can ensure the correct expirse and
+   * Session object provided by server can ensure the correct expires and
    * base_domain setup as predefined in server, also you may get more useful
    * information for custom functionality, too. BTW, this may require for
    * additional remote call overhead.
@@ -148,8 +147,8 @@ abstract class OAuth2Client {
     // Try generate local version of session cookie.
     if (!empty($access_token) && isset($access_token['access_token'])) {
       $session['access_token'] = $access_token['access_token'];
-      $session['base_domain'] = $this->getVariable('base_domain', OAUTH2_DEFAULT_BASE_DOMAIN);
-      $session['expirse'] = isset($access_token['expires_in']) ? time() + $access_token['expires_in'] : time() + $this->getVariable('expires_in', OAUTH2_DEFAULT_EXPIRES_IN);
+      $session['base_domain'] = $this->getVariable('base_domain', self::DEFAULT_BASE_DOMAIN);
+      $session['expires'] = isset($access_token['expires_in']) ? time() + $access_token['expires_in'] : time() + $this->getVariable('expires_in', self::DEFAULT_EXPIRES_IN);
       $session['refresh_token'] = isset($access_token['refresh_token']) ? $access_token['refresh_token'] : '';
       $session['scope'] = isset($access_token['scope']) ? $access_token['scope'] : '';
       $session['secret'] = md5(base64_encode(pack('N6', mt_rand(), mt_rand(), mt_rand(), mt_rand(), mt_rand(), uniqid())));
@@ -558,11 +557,11 @@ abstract class OAuth2Client {
     $cookie_name = $this->getSessionCookieName();
     $value = 'deleted';
     $expires = time() - 3600;
-    $base_domain = $this->getVariable('base_domain', OAUTH2_DEFAULT_BASE_DOMAIN);
+    $base_domain = $this->getVariable('base_domain', self::DEFAULT_BASE_DOMAIN);
     if ($session) {
       $value = '"' . http_build_query($session, NULL, '&') . '"';
       $base_domain = isset($session['base_domain']) ? $session['base_domain'] : $base_domain;
-      $expires = isset($session['expires']) ? $session['expires'] : time() + $this->getVariable('expires_in', OAUTH2_DEFAULT_EXPIRES_IN);
+      $expires = isset($session['expires']) ? $session['expires'] : time() + $this->getVariable('expires_in', self::DEFAULT_EXPIRES_IN);
     }
 
     // Prepend dot if a domain is found.

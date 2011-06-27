@@ -11,8 +11,9 @@
 
 require "lib/PDOOAuth2.php";
 
-$oauth = new PDOOAuth2();
-$oauth->verifyAccessToken();
+$token = isset($_GET[OAUTH2_TOKEN_PARAM_NAME]) ? $_GET[OAUTH2_TOKEN_PARAM_NAME] : null;
+$oauth = new OAuth2(new OAuth2StoragePDO());
+$oauth->verifyAccessToken($token);
 
 // With a particular scope, you'd do:
 // $oauth->verifyAccessToken("scope_name");
