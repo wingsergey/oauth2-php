@@ -63,9 +63,9 @@ class OAuth2 {
    * @var int
    * @see OAuth2::setDefaultOptions()
    */
-  const DEFAULT_ACCESS_TOKEN_LIFETIME  = 3600; 
-  const DEFAULT_REFRESH_TOKEN_LIFETIME = 30; 
-  const DEFAULT_AUTH_CODE_LIFETIME     = 1209600;
+  const DEFAULT_ACCESS_TOKEN_LIFETIME  = 3600;
+  const DEFAULT_REFRESH_TOKEN_LIFETIME = 1209600;
+  const DEFAULT_AUTH_CODE_LIFETIME     = 30;
   const DEFAULT_WWW_REALM              = 'Service';
   
   /**
@@ -332,7 +332,7 @@ class OAuth2 {
    */
   public function __construct(IOAuth2Storage $storage, $config = array()) {
     $this->storage = $storage;
-    
+   
     // Configuration options
     $this->setDefaultOptions();
     foreach ($config as $name => $value) {
@@ -355,7 +355,7 @@ class OAuth2 {
       		self::RESPONSE_TYPE_CODE_AND_TOKEN
       	),
       	// This is expected to be passed in on construction. Scopes can be an aribitrary string.
-      	self::CONFIG_SUPPORTED_SCOPES => array()  
+      	self::CONFIG_SUPPORTED_SCOPES => array()
   	);
   }
 
@@ -371,8 +371,8 @@ class OAuth2 {
    *   The value of the variable.
    */
   public function getVariable($name, $default = NULL) {
-  	$name = strtolower($name);
-  	
+    $name = strtolower($name);
+
     return isset($this->conf[$name]) ? $this->conf[$name] : $default;
   }
 
