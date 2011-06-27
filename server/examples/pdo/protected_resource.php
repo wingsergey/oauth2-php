@@ -9,9 +9,9 @@
  * In reality, you'd probably use a nifty framework to handle most of the crud for you.
  */
 
-require "lib/PDOOAuth2.php";
+require "lib/OAuth2StoragePDO.php";
 
-$token = isset($_GET[OAUTH2_TOKEN_PARAM_NAME]) ? $_GET[OAUTH2_TOKEN_PARAM_NAME] : null;
+$token = isset($_GET[OAuth2::TOKEN_PARAM_NAME]) ? $_GET[OAuth2::TOKEN_PARAM_NAME] : null;
 $oauth = new OAuth2(new OAuth2StoragePDO());
 $oauth->verifyAccessToken($token);
 

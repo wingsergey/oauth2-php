@@ -9,10 +9,11 @@
  * In reality, you'd probably use a nifty framework to handle most of the crud for you.
  */
 
-require "lib/MongoOAuth2.php";
+require "lib/OAuth2StorageMongo.php";
 
-$oauth = new MongoOAuth2();
-$oauth->verifyAccessToken();
+$token = isset($_GET[OAuth2::TOKEN_PARAM_NAME]) ? $_GET[OAuth2::TOKEN_PARAM_NAME] : null;
+$oauth = new OAuth2(new OAuth2StorageMongo());
+$oauth->verifyAccessToken($token);
 
 // With a particular scope, you'd do:
 // $oauth->verifyAccessToken("scope_name");

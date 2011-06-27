@@ -182,7 +182,7 @@ class OAuth2StoragePDO implements IOAuth2Storage {
    * Implements IOAuth2Storage::getSupportedGrantTypes().
    */
   public function getSupportedAuthResponseTypes() {
-		return array(OAUTH2_AUTH_RESPONSE_TYPE_AUTH_CODE, OAUTH2_AUTH_RESPONSE_TYPE_ACCESS_TOKEN);
+		return array(OAuth2::RESPONSE_TYPE_AUTH_CODE, OAuth2::RESPONSE_TYPE_ACCESS_TOKEN);
 	}
 
   /**
@@ -229,7 +229,7 @@ class OAuth2StoragePDO implements IOAuth2Storage {
    * @see IOAuth2Storage::getSupportedGrantTypes()
    */
   public function getSupportedGrantTypes() {
-    return array(OAUTH2_GRANT_TYPE_AUTH_CODE, OAUTH2_GRANT_TYPE_REFRESH_TOKEN);
+    return array(OAuth2::GRANT_TYPE_AUTH_CODE, OAuth2::GRANT_TYPE_REFRESH_TOKEN);
   }
   
   /**

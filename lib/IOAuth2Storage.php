@@ -84,7 +84,7 @@ interface IOAuth2Storage {
 	 *
 	 * Retrieve the stored data for the given authorization code.
 	 *
-	 * Required for OAUTH2_GRANT_TYPE_AUTH_CODE.
+	 * Required for OAuth2::GRANT_TYPE_AUTH_CODE.
 	 *
 	 * @param $code
 	 * Authorization code to be check with.
@@ -111,7 +111,7 @@ interface IOAuth2Storage {
 	 * any sort of success/failure, so you should bail out of the script
 	 * and provide a descriptive fail message.
 	 *
-	 * Required for OAUTH2_GRANT_TYPE_AUTH_CODE.
+	 * Required for OAuth2::GRANT_TYPE_AUTH_CODE.
 	 *
 	 * @param $code
 	 * Authorization code to be stored.
@@ -135,7 +135,7 @@ interface IOAuth2Storage {
 	 *
 	 * Retrieve the stored data for the given refresh token.
 	 *
-	 * Required for OAUTH2_GRANT_TYPE_REFRESH_TOKEN.
+	 * Required for OAuth2::GRANT_TYPE_REFRESH_TOKEN.
 	 *
 	 * @param $refresh_token
 	 * Refresh token to be check with.
@@ -162,7 +162,7 @@ interface IOAuth2Storage {
 	 * any sort of success/failure, so you should bail out of the script
 	 * and provide a descriptive fail message.
 	 *
-	 * Required for OAUTH2_GRANT_TYPE_REFRESH_TOKEN.
+	 * Required for OAuth2::GRANT_TYPE_REFRESH_TOKEN.
 	 *
 	 * @param $refresh_token
 	 * Refresh token to be stored.
@@ -201,7 +201,7 @@ interface IOAuth2Storage {
 	 * Not really described in the IETF Draft, so I just left a method
 	 * stub... Do whatever you want!
 	 *
-	 * Required for OAUTH2_GRANT_TYPE_NONE.
+	 * Required for OAuth2::GRANT_TYPE_NONE.
 	 *
 	 * @ingroup oauth2_section_4
 	 */
@@ -215,7 +215,7 @@ interface IOAuth2Storage {
 	 * You can also use the $client_id param to do any checks required based
 	 * on a client, if you need that.
 	 *
-	 * Required for OAUTH2_GRANT_TYPE_ASSERTION.
+	 * Required for OAuth2::GRANT_TYPE_ASSERTION.
 	 *
 	 * @param $client_id
 	 * Client identifier to be check with.
@@ -250,7 +250,7 @@ interface IOAuth2Storage {
 	 * You can also use the $client_id param to do any checks required based
 	 * on a client, if you need that.
 	 *
-	 * Required for OAUTH2_GRANT_TYPE_USER_CREDENTIALS.
+	 * Required for OAuth2::GRANT_TYPE_USER_CREDENTIALS.
 	 *
 	 * @param $client_id
 	 * Client identifier to be check with.
@@ -288,7 +288,7 @@ interface IOAuth2Storage {
 	 * Client identifier to be check with.
 	 * @param $response_type
 	 * Authorization response type to be check with, would be one of the
-	 * values contained in OAUTH2_AUTH_RESPONSE_TYPE_REGEXP.
+	 * values contained in OAuth2::RESPONSE_TYPE_REGEXP.
 	 *
 	 * @return
 	 * TRUE if the authorization response type is supported by this
@@ -308,7 +308,7 @@ interface IOAuth2Storage {
 	 * Client identifier to be check with.
 	 * @param $grant_type
 	 * Grant type to be check with, would be one of the values contained in
-	 * OAUTH2_GRANT_TYPE_REGEXP.
+	 * OAuth2::GRANT_TYPE_REGEXP.
 	 *
 	 * @return
 	 * TRUE if the grant type is supported by this client identifier, and
@@ -319,8 +319,24 @@ interface IOAuth2Storage {
 	public function checkRestrictedGrantType($client_id, $grant_type);
 	
 	/**
-	 * 
-	 * Enter description here ...
-	 */
+   * Return supported grant types.
+   *
+   * You should override this function with something, or else your OAuth
+   * provider won't support any grant types!
+   *
+   * @return
+   *   A list as below. If you support all grant types, then you'd do:
+   * @code
+   * return array(
+   *   OAuth2::GRANT_TYPE_AUTH_CODE,
+   *   OAuth2::GRANT_TYPE_USER_CREDENTIALS,
+   *   OAuth2::GRANT_TYPE_ASSERTION,
+   *   OAuth2::GRANT_TYPE_REFRESH_TOKEN,
+   *   OAuth2::GRANT_TYPE_NONE,
+   * );
+   * @endcode
+   *
+   * @ingroup oauth2_section_4
+   */
 	public function getSupportedGrantTypes();
 }

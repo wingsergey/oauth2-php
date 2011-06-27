@@ -22,295 +22,9 @@
  * @author Tim Ridgely <tim.ridgely@gmail.com>
  * @author Aaron Parecki <aaron@parecki.com>
  * @author Edison Wong <hswong3i@pantarei-design.com>
+ * @author Refactoring by David Rochwerger <catch.dave@gmail.com>
  *
  * @see http://code.google.com/p/oauth2-php/
- */
-
-
-/**
- * @defgroup oauth2_section_2 Client Credentials
- * @{
- *
- * When interacting with the authorization server, the client identifies
- * itself using a client identifier and authenticates using a set of
- * client credentials. This specification provides one mechanism for
- * authenticating the client using password credentials.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-2
- */
-
-/**
- * Regex to filter out the client identifier (described in Section 2 of IETF draft).
- *
- * IETF draft does not prescribe a format for these, however I've arbitrarily
- * chosen alphanumeric strings with hyphens and underscores, 3-32 characters
- * long.
- *
- * Feel free to change.
- */
-define("OAUTH2_CLIENT_ID_REGEXP", "/^[a-z0-9-_]{3,32}$/i");
-
-/**
- * @}
- */
-
-
-/**
- * @defgroup oauth2_section_3 Obtaining End-User Authorization
- * @{
- *
- * When the client interacts with an end-user, the end-user MUST first
- * grant the client authorization to access its protected resources.
- * Once obtained, the end-user access grant is expressed as an
- * authorization code which the client uses to obtain an access token.
- * To obtain an end-user authorization, the client sends the end-user to
- * the end-user authorization endpoint.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3
- */
-
-/**
- * Regex to filter out the authorization response type.
- */
-define("OAUTH2_AUTH_RESPONSE_TYPE_REGEXP", "/^(token|code|code-and-token)$/");
-
-/**
- * @}
- */
-
-
-/**
- * @defgroup oauth2_section_4 Obtaining an Access Token
- * @{
- *
- * The client obtains an access token by authenticating with the
- * authorization server and presenting its access grant (in the form of
- * an authorization code, resource owner credentials, an assertion, or a
- * refresh token).
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4
- */
-
-/**
- * Denotes "authorization_code" grant types (for token obtaining).
- */
-define("OAUTH2_GRANT_TYPE_AUTH_CODE", "authorization_code");
-
-/**
- * Denotes "password" grant types (for token obtaining).
- */
-define("OAUTH2_GRANT_TYPE_USER_CREDENTIALS", "password");
-
-/**
- * Denotes "assertion" grant types (for token obtaining).
- */
-define("OAUTH2_GRANT_TYPE_ASSERTION", "assertion");
-
-/**
- * Denotes "refresh_token" grant types (for token obtaining).
- */
-define("OAUTH2_GRANT_TYPE_REFRESH_TOKEN", "refresh_token");
-
-/**
- * Denotes "none" grant types (for token obtaining).
- */
-define("OAUTH2_GRANT_TYPE_NONE", "none");
-
-/**
- * Regex to filter out the grant type.
- */
-define("OAUTH2_GRANT_TYPE_REGEXP", "/^(authorization_code|password|assertion|refresh_token|none)$/");
-
-/**
- * @}
- */
-
-
-/**
- * @defgroup oauth2_section_5 Accessing a Protected Resource
- * @{
- *
- * Clients access protected resources by presenting an access token to
- * the resource server. Access tokens act as bearer tokens, where the
- * token string acts as a shared symmetric secret. This requires
- * treating the access token with the same care as other secrets (e.g.
- * end-user passwords). Access tokens SHOULD NOT be sent in the clear
- * over an insecure channel.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5
- */
-
-/**
- * Used to define the name of the OAuth access token parameter (POST/GET/etc.).
- *
- * IETF Draft sections 5.1.2 and 5.1.3 specify that it should be called
- * "oauth_token" but other implementations use things like "access_token".
- *
- * I won't be heartbroken if you change it, but it might be better to adhere
- * to the spec.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.1.2
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.1.3
- */
-define("OAUTH2_TOKEN_PARAM_NAME", "oauth_token");
-
-/**
- * @}
- */
-
-
-/**
- * @defgroup oauth2_http_status HTTP status code
- * @{
- */
-
-/**
- * "Found" HTTP status code.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3
- */
-define("OAUTH2_HTTP_FOUND", "302 Found");
-
-/**
- * "Bad Request" HTTP status code.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
- */
-define("OAUTH2_HTTP_BAD_REQUEST", "400 Bad Request");
-
-/**
- * "Unauthorized" HTTP status code.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
- */
-define("OAUTH2_HTTP_UNAUTHORIZED", "401 Unauthorized");
-
-/**
- * "Forbidden" HTTP status code.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
- */
-define("OAUTH2_HTTP_FORBIDDEN", "403 Forbidden");
-
-/**
- * @}
- */
-
-
-/**
- * @defgroup oauth2_error Error handling
- * @{
- *
- * @todo Extend for i18n.
- */
-
-/**
- * The request is missing a required parameter, includes an unsupported
- * parameter or parameter value, or is otherwise malformed.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
- */
-define("OAUTH2_ERROR_INVALID_REQUEST", "invalid_request");
-
-/**
- * The client identifier provided is invalid.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
- */
-define("OAUTH2_ERROR_INVALID_CLIENT", "invalid_client");
-
-/**
- * The client is not authorized to use the requested response type.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
- */
-define("OAUTH2_ERROR_UNAUTHORIZED_CLIENT", "unauthorized_client");
-
-/**
- * The redirection URI provided does not match a pre-registered value.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
- */
-define("OAUTH2_ERROR_REDIRECT_URI_MISMATCH", "redirect_uri_mismatch");
-
-/**
- * The end-user or authorization server denied the request.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
- */
-define("OAUTH2_ERROR_USER_DENIED", "access_denied");
-
-/**
- * The requested response type is not supported by the authorization server.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
- */
-define("OAUTH2_ERROR_UNSUPPORTED_RESPONSE_TYPE", "unsupported_response_type");
-
-/**
- * The requested scope is invalid, unknown, or malformed.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
- */
-define("OAUTH2_ERROR_INVALID_SCOPE", "invalid_scope");
-
-/**
- * The provided access grant is invalid, expired, or revoked (e.g. invalid
- * assertion, expired authorization token, bad end-user password credentials,
- * or mismatching authorization code and redirection URI).
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
- */
-define("OAUTH2_ERROR_INVALID_GRANT", "invalid_grant");
-
-/**
- * The access grant included - its type or another attribute - is not
- * supported by the authorization server.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
- */
-define("OAUTH2_ERROR_UNSUPPORTED_GRANT_TYPE", "unsupported_grant_type");
-
-/**
- * The access token provided is invalid. Resource servers SHOULD use this
- * error code when receiving an expired token which cannot be refreshed to
- * indicate to the client that a new authorization is necessary. The resource
- * server MUST respond with the HTTP 401 (Unauthorized) status code.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
- */
-define("OAUTH2_ERROR_INVALID_TOKEN", "invalid_token");
-
-/**
- * The access token provided has expired. Resource servers SHOULD only use
- * this error code when the client is expected to be able to handle the
- * response and request a new access token using the refresh token issued
- * with the expired access token. The resource server MUST respond with the
- * HTTP 401 (Unauthorized) status code.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
- */
-define("OAUTH2_ERROR_EXPIRED_TOKEN", "expired_token");
-
-/**
- * The request requires higher privileges than provided by the access token.
- * The resource server SHOULD respond with the HTTP 403 (Forbidden) status
- * code and MAY include the "scope" attribute with the scope necessary to
- * access the protected resource.
- *
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
- */
-define("OAUTH2_ERROR_INSUFFICIENT_SCOPE", "insufficient_scope");
-
-/**
- * @}
  */
 
 /**
@@ -319,6 +33,7 @@ define("OAUTH2_ERROR_INSUFFICIENT_SCOPE", "insufficient_scope");
  * @author Originally written by Tim Ridgely <tim.ridgely@gmail.com>.
  * @author Updated to draft v10 by Aaron Parecki <aaron@parecki.com>.
  * @author Debug, coding style clean up and documented by Edison Wong <hswong3i@pantarei-design.com>.
+ * @author Refactored (including separating from raw POST/GET) by David Rochwerger <catch.dave@gmail.com>.
  */
 class OAuth2 {
 
@@ -374,9 +89,241 @@ class OAuth2 {
    * @var string
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3
    */
-  const AUTH_RESPONSE_TYPE_AUTH_CODE      = 'code';
-  const AUTH_RESPONSE_TYPE_ACCESS_TOKEN   = 'token';
-  const AUTH_RESPONSE_TYPE_CODE_AND_TOKEN = 'code-and-token';
+  const RESPONSE_TYPE_AUTH_CODE      = 'code';
+  const RESPONSE_TYPE_ACCESS_TOKEN   = 'token';
+  const RESPONSE_TYPE_CODE_AND_TOKEN = 'code-and-token';
+  
+	/**
+   * Regex to filter out the client identifier (described in Section 2 of IETF draft).
+   *
+   * IETF draft does not prescribe a format for these, however I've arbitrarily
+   * chosen alphanumeric strings with hyphens and underscores, 3-32 characters
+   * long.
+   *
+   * Feel free to change.
+   */
+  const CLIENT_ID_REGEXP = '/^[a-z0-9-_]{3,32}$/i';
+  
+  /**
+   * @defgroup oauth2_section_5 Accessing a Protected Resource
+   * @{
+   *
+   * Clients access protected resources by presenting an access token to
+   * the resource server. Access tokens act as bearer tokens, where the
+   * token string acts as a shared symmetric secret. This requires
+   * treating the access token with the same care as other secrets (e.g.
+   * end-user passwords). Access tokens SHOULD NOT be sent in the clear
+   * over an insecure channel.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5
+   */
+  
+  /**
+   * Used to define the name of the OAuth access token parameter (POST/GET/etc.).
+   *
+   * IETF Draft sections 5.1.2 and 5.1.3 specify that it should be called
+   * "oauth_token" but other implementations use things like "access_token".
+   *
+   * I won't be heartbroken if you change it, but it might be better to adhere
+   * to the spec.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.1.2
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.1.3
+   */
+  const TOKEN_PARAM_NAME = 'oauth_token';
+  
+  /**
+   * @}
+   */
+  
+  /**
+   * @defgroup oauth2_section_3 Obtaining End-User Authorization
+   * @{
+   *
+   * When the client interacts with an end-user, the end-user MUST first
+   * grant the client authorization to access its protected resources.
+   * Once obtained, the end-user access grant is expressed as an
+   * authorization code which the client uses to obtain an access token.
+   * To obtain an end-user authorization, the client sends the end-user to
+   * the end-user authorization endpoint.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3
+   */
+  
+  /**
+   * Regex to filter out the authorization response type.
+   */
+  const RESPONSE_TYPE_REGEXP = '/^(token|code|code-and-token)$/';
+  
+  /**
+   * @}
+   */
+  
+  /**
+   * @defgroup oauth2_section_4 Obtaining an Access Token
+   * @{
+   *
+   * The client obtains an access token by authenticating with the
+   * authorization server and presenting its access grant (in the form of
+   * an authorization code, resource owner credentials, an assertion, or a
+   * refresh token).
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4
+   */
+  
+  /**
+   * Grant types support by draft 10
+   */
+  const GRANT_TYPE_AUTH_CODE         = 'authorization_code';
+  const GRANT_TYPE_USER_CREDENTIALS  = 'password';
+  const GRANT_TYPE_ASSERTION         = 'assertion';
+  const GRANT_TYPE_REFRESH_TOKEN     = 'refresh_token';
+  const GRANT_TYPE_NONE              = 'none';
+  
+  /**
+   * Regex to filter out the grant type.
+   */
+  const GRANT_TYPE_REGEXP = '/^(authorization_code|password|assertion|refresh_token|none)$/';
+  
+  /**
+   * @}
+   */
+  
+  /**
+   * @defgroup self::HTTP_status HTTP status code
+   * @{
+   */
+  
+  /**
+   * HTTP status codes for successful and error states
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
+   */
+  const HTTP_FOUND        = '302 Found';
+  const HTTP_BAD_REQUEST  = '400 Bad Request';
+  const HTTP_UNAUTHORIZED = '401 Unauthorized';
+  const HTTP_FORBIDDEN    = '403 Forbidden';
+  
+  /**
+   * @}
+   */
+  
+  /**
+   * @defgroup oauth2_error Error handling
+   * @{
+   *
+   * @todo Extend for i18n.
+   * @todo Consider moving all error related functionality into a separate class.
+   */
+  
+  /**
+   * The request is missing a required parameter, includes an unsupported
+   * parameter or parameter value, or is otherwise malformed.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
+   */
+  const ERROR_INVALID_REQUEST = 'invalid_request';
+  
+  /**
+   * The client identifier provided is invalid.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
+   */
+  const ERROR_INVALID_CLIENT = 'invalid_client';
+  
+  /**
+   * The client is not authorized to use the requested response type.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
+   */
+  const ERROR_UNAUTHORIZED_CLIENT = 'unauthorized_client';
+  
+  /**
+   * The redirection URI provided does not match a pre-registered value.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
+   */
+  const ERROR_REDIRECT_URI_MISMATCH = 'redirect_uri_mismatch';
+  
+  /**
+   * The end-user or authorization server denied the request.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
+   */
+  const ERROR_USER_DENIED = 'access_denied';
+  
+  /**
+   * The requested response type is not supported by the authorization server.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
+   */
+  const ERROR_UNSUPPORTED_RESPONSE_TYPE = 'unsupported_response_type';
+  
+  /**
+   * The requested scope is invalid, unknown, or malformed.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
+   */
+  const ERROR_INVALID_SCOPE = 'invalid_scope';
+  
+  /**
+   * The provided access grant is invalid, expired, or revoked (e.g. invalid
+   * assertion, expired authorization token, bad end-user password credentials,
+   * or mismatching authorization code and redirection URI).
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
+   */
+  const ERROR_INVALID_GRANT = 'invalid_grant';
+  
+  /**
+   * The access grant included - its type or another attribute - is not
+   * supported by the authorization server.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.3.1
+   */
+  const ERROR_UNSUPPORTED_GRANT_TYPE = 'unsupported_grant_type';
+  
+  /**
+   * The access token provided is invalid. Resource servers SHOULD use this
+   * error code when receiving an expired token which cannot be refreshed to
+   * indicate to the client that a new authorization is necessary. The resource
+   * server MUST respond with the HTTP 401 (Unauthorized) status code.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
+   */
+  const ERROR_INVALID_TOKEN = 'invalid_token';
+  
+  /**
+   * The access token provided has expired. Resource servers SHOULD only use
+   * this error code when the client is expected to be able to handle the
+   * response and request a new access token using the refresh token issued
+   * with the expired access token. The resource server MUST respond with the
+   * HTTP 401 (Unauthorized) status code.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
+   */
+  const ERROR_EXPIRED_TOKEN = 'expired_token';
+  
+  /**
+   * The request requires higher privileges than provided by the access token.
+   * The resource server SHOULD respond with the HTTP 403 (Forbidden) status
+   * code and MAY include the "scope" attribute with the scope necessary to
+   * access the protected resource.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.2.1
+   */
+  const ERROR_INSUFFICIENT_SCOPE = 'insufficient_scope';
+  
+  /**
+   * @}
+   */
   
   /**
    * Creates an OAuth2.0 server-side instance.
@@ -401,11 +348,11 @@ class OAuth2 {
   		self::CONFIG_ACCESS_LIFETIME  => self::DEFAULT_ACCESS_TOKEN_LIFETIME,
   		self::CONFIG_REFRESH_LIFETIME => self::DEFAULT_REFRESH_TOKEN_LIFETIME, 
   		self::CONFIG_AUTH_LIFETIME    => self::DEFAULT_AUTH_CODE_LIFETIME,
-  		self::CONFIG_DEFAULT_REALM    => self::DEFAULT_REALM,
+  		self::CONFIG_DEFAULT_REALM    => self::DEFAULT_WWW_REALM,
   		self::CONFIG_SUPPORTED_AUTH   => array(
-  			self::AUTH_RESPONSE_TYPE_AUTH_CODE,
-      		self::AUTH_RESPONSE_TYPE_ACCESS_TOKEN,
-      		self::AUTH_RESPONSE_TYPE_CODE_AND_TOKEN
+  			self::RESPONSE_TYPE_AUTH_CODE,
+      		self::RESPONSE_TYPE_ACCESS_TOKEN,
+      		self::RESPONSE_TYPE_CODE_AND_TOKEN
       	),
       	// This is expected to be passed in on construction. Scopes can be an aribitrary string.
       	self::CONFIG_SUPPORTED_SCOPES => array()  
@@ -448,6 +395,7 @@ class OAuth2 {
 
   /**
    * Check that a valid access token has been provided.
+   * The token is returned (as an associative array) if valid.
    *
    * The scope parameter defines any required scope that the token must have.
    * If a scope param is provided and the token does not have the required
@@ -477,30 +425,31 @@ class OAuth2 {
    * @param $realm
    *   If you want to specify a particular realm for the WWW-Authenticate
    *   header, supply it here.
+   * @return array - Token
    *
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5
    *
    * @ingroup oauth2_section_5
    */
-  public function verifyAccessToken($scope = NULL, $exit_not_present = TRUE, $exit_invalid = TRUE, $exit_expired = TRUE, $exit_scope = TRUE, $realm = NULL) {
+  public function verifyAccessToken($token_param, $scope = NULL, $exit_not_present = TRUE, $exit_invalid = TRUE, $exit_expired = TRUE, $exit_scope = TRUE, $realm = NULL) {
     $token_param = $this->getAccessTokenParams();
     if ($token_param === FALSE) // Access token was not provided
-      return $exit_not_present ? $this->errorWWWAuthenticateResponseHeader(OAUTH2_HTTP_BAD_REQUEST, $realm, OAUTH2_ERROR_INVALID_REQUEST, 'The request is missing a required parameter, includes an unsupported parameter or parameter value, repeats the same parameter, uses more than one method for including an access token, or is otherwise malformed.', NULL, $scope) : FALSE;
+      return $exit_not_present ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_BAD_REQUEST, $realm, self::ERROR_INVALID_REQUEST, 'The request is missing a required parameter, includes an unsupported parameter or parameter value, repeats the same parameter, uses more than one method for including an access token, or is otherwise malformed.', NULL, $scope) : FALSE;
     // Get the stored token data (from the implementing subclass)
-    $token = $this->getAccessToken($token_param);
+    $token = $this->storage->getAccessToken($token_param);
     if ($token === NULL)
-      return $exit_invalid ? $this->errorWWWAuthenticateResponseHeader(OAUTH2_HTTP_UNAUTHORIZED, $realm, OAUTH2_ERROR_INVALID_TOKEN, 'The access token provided is invalid.', NULL, $scope) : FALSE;
+      return $exit_invalid ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_UNAUTHORIZED, $realm, self::ERROR_INVALID_TOKEN, 'The access token provided is invalid.', NULL, $scope) : FALSE;
 
     // Check token expiration (I'm leaving this check separated, later we'll fill in better error messages)
     if (isset($token["expires"]) && time() > $token["expires"])
-      return $exit_expired ? $this->errorWWWAuthenticateResponseHeader(OAUTH2_HTTP_UNAUTHORIZED, $realm, OAUTH2_ERROR_EXPIRED_TOKEN, 'The access token provided has expired.', NULL, $scope) : FALSE;
+      return $exit_expired ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_UNAUTHORIZED, $realm, self::ERROR_EXPIRED_TOKEN, 'The access token provided has expired.', NULL, $scope) : FALSE;
 
     // Check scope, if provided
     // If token doesn't have a scope, it's NULL/empty, or it's insufficient, then throw an error
     if ($scope && (!isset($token["scope"]) || !$token["scope"] || !$this->checkScope($scope, $token["scope"])))
-      return $exit_scope ? $this->errorWWWAuthenticateResponseHeader(OAUTH2_HTTP_FORBIDDEN, $realm, OAUTH2_ERROR_INSUFFICIENT_SCOPE, 'The request requires higher privileges than provided by the access token.', NULL, $scope) : FALSE;
+      return $exit_scope ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_FORBIDDEN, $realm, self::ERROR_INSUFFICIENT_SCOPE, 'The request requires higher privileges than provided by the access token.', NULL, $scope) : FALSE;
 
-    return TRUE;
+    return $token;
   }
 
   /**
@@ -508,8 +457,6 @@ class OAuth2 {
    *
    * @param $required_scope
    *   Required scope to be check with.
-   * @param $available_scope
-   *   Available scope to be compare with.
    *
    * @return
    *   TRUE if everything in required scope is contained in available scope,
@@ -519,13 +466,12 @@ class OAuth2 {
    *
    * @ingroup oauth2_section_5
    */
-  private function checkScope($required_scope, $available_scope) {
+  private function checkScope($required_scope) {
     // The required scope should match or be a subset of the available scope
     if (!is_array($required_scope))
       $required_scope = explode(" ", $required_scope);
 
-    if (!is_array($available_scope))
-      $available_scope = explode(" ", $available_scope);
+    $available_scope = $this->getVariable(self::CONFIG_SUPPORTED_SCOPES);
 
     return (count(array_diff($required_scope, $available_scope)) == 0);
   }
@@ -544,36 +490,36 @@ class OAuth2 {
    *
    * @ingroup oauth2_section_5
    */
-  private function getAccessTokenParams() {
+  public function getAccessTokenParams() {
     $auth_header = $this->getAuthorizationHeader();
 
     if ($auth_header !== FALSE) {
       // Make sure only the auth header is set
-      if (isset($_GET[OAUTH2_TOKEN_PARAM_NAME]) || isset($_POST[OAUTH2_TOKEN_PARAM_NAME]))
-        $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'Auth token found in GET or POST when token present in header');
+      if (isset($_GET[self::TOKEN_PARAM_NAME]) || isset($_POST[self::TOKEN_PARAM_NAME]))
+        $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Auth token found in GET or POST when token present in header');
 
       $auth_header = trim($auth_header);
 
       // Make sure it's Token authorization
       if (strcmp(substr($auth_header, 0, 5), "OAuth ") !== 0)
-        $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'Auth header found that doesn\'t start with "OAuth"');
+        $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Auth header found that doesn\'t start with "OAuth"');
 
       // Parse the rest of the header
       if (preg_match('/\s*OAuth\s*="(.+)"/', substr($auth_header, 5), $matches) == 0 || count($matches) < 2)
-        $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'Malformed auth header');
+        $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Malformed auth header');
 
       return $matches[1];
     }
 
-    if (isset($_GET[OAUTH2_TOKEN_PARAM_NAME])) {
-      if (isset($_POST[OAUTH2_TOKEN_PARAM_NAME])) // Both GET and POST are not allowed
-        $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'Only send the token in GET or POST, not both');
+    if (isset($_GET[self::TOKEN_PARAM_NAME])) {
+      if (isset($_POST[self::TOKEN_PARAM_NAME])) // Both GET and POST are not allowed
+        $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Only send the token in GET or POST, not both');
 
-      return $_GET[OAUTH2_TOKEN_PARAM_NAME];
+      return $_GET[self::TOKEN_PARAM_NAME];
     }
 
-    if (isset($_POST[OAUTH2_TOKEN_PARAM_NAME]))
-      return $_POST[OAUTH2_TOKEN_PARAM_NAME];
+    if (isset($_POST[self::TOKEN_PARAM_NAME]))
+      return $_POST[self::TOKEN_PARAM_NAME];
 
     return FALSE;
   }
@@ -595,7 +541,7 @@ class OAuth2 {
    */
   public function grantAccessToken(array $inputData = NULL) {
     $filters = array(
-      "grant_type" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => OAUTH2_GRANT_TYPE_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
+      "grant_type" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => self::GRANT_TYPE_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
       "scope" => array("flags" => FILTER_REQUIRE_SCALAR),
       "code" => array("flags" => FILTER_REQUIRE_SCALAR),
       "redirect_uri" => array("filter" => FILTER_SANITIZE_URL),
@@ -613,83 +559,83 @@ class OAuth2 {
 
     // Grant Type must be specified.
     if (!$input["grant_type"])
-      $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'Invalid grant_type parameter or parameter missing');
+      $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Invalid grant_type parameter or parameter missing');
 
     // Make sure we've implemented the requested grant type
     if (!in_array($input["grant_type"], $this->storage->getSupportedGrantTypes()))
-      $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_UNSUPPORTED_GRANT_TYPE);
+      $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_UNSUPPORTED_GRANT_TYPE);
 
     // Authorize the client
     $client = $this->getClientCredentials();
 
-    if ($this->checkClientCredentials($client[0], $client[1]) === FALSE)
-      $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_CLIENT);
+    if ($this->storage->checkClientCredentials($client[0], $client[1]) === FALSE)
+      $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT);
 
-    if (!$this->checkRestrictedGrantType($client[0], $input["grant_type"]))
-      $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_UNAUTHORIZED_CLIENT);
+    if (!$this->storage->checkRestrictedGrantType($client[0], $input["grant_type"]))
+      $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_UNAUTHORIZED_CLIENT);
 
     // Do the granting
     switch ($input["grant_type"]) {
-      case OAUTH2_GRANT_TYPE_AUTH_CODE:
+      case self::GRANT_TYPE_AUTH_CODE:
         if (!$input["code"] || !$input["redirect_uri"])
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'Missing parameters. "code" and "redirect_uri" required');
+          $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Missing parameters. "code" and "redirect_uri" required');
 
         $stored = $this->storage->getAuthCode($input["code"]);
 
         // Ensure that the input uri starts with the stored uri
         if ($stored === NULL || (strcasecmp(substr($input["redirect_uri"], 0, strlen($stored["redirect_uri"])), $stored["redirect_uri"]) !== 0) || $client[0] != $stored["client_id"])
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_GRANT, "Refresh token doesn't exist or is invalid for the client");
+          $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_GRANT, "Refresh token doesn't exist or is invalid for the client");
 
         if ($stored["expires"] < time())
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_EXPIRED_TOKEN);
+          $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_EXPIRED_TOKEN);
 
         break;
-      case OAUTH2_GRANT_TYPE_USER_CREDENTIALS:
+      case self::GRANT_TYPE_USER_CREDENTIALS:
         if (!$input["username"] || !$input["password"])
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'Missing parameters. "username" and "password" required');
+          $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Missing parameters. "username" and "password" required');
 
         $stored = $this->storage->checkUserCredentials($client[0], $input["username"], $input["password"]);
 
         if ($stored === FALSE)
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_GRANT);
+          $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_GRANT);
 
         break;
-      case OAUTH2_GRANT_TYPE_ASSERTION:
+      case self::GRANT_TYPE_ASSERTION:
         if (!$input["assertion_type"] || !$input["assertion"])
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST);
+          $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST);
 
         $stored = $this->storage->checkAssertion($client[0], $input["assertion_type"], $input["assertion"]);
 
         if ($stored === FALSE)
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_GRANT);
+          $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_GRANT);
 
         break;
-      case OAUTH2_GRANT_TYPE_REFRESH_TOKEN:
+      case self::GRANT_TYPE_REFRESH_TOKEN:
         if (!$input["refresh_token"])
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST, 'No "refresh_token" parameter found');
+          $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'No "refresh_token" parameter found');
 
         $stored = $this->storage->getRefreshToken($input["refresh_token"]);
 
         if ($stored === NULL || $client[0] != $stored["client_id"])
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_GRANT);
+          $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_GRANT);
 
         if ($stored["expires"] < time())
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_EXPIRED_TOKEN);
+          $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_EXPIRED_TOKEN);
 
         // store the refresh token locally so we can delete it when a new refresh token is generated
         $this->oldRefreshToken = $stored["refresh_token"];
 
         break;
-      case OAUTH2_GRANT_TYPE_NONE:
+      case self::GRANT_TYPE_NONE:
         $stored = $this->storage->checkNoneAccess($client[0]);
 
         if ($stored === FALSE)
-          $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_REQUEST);
+          $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST);
     }
 
     // Check scope, if provided
     if ($input["scope"] && (!is_array($stored) || !isset($stored["scope"]) || !$this->checkScope($input["scope"], $stored["scope"])))
-      $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_SCOPE);
+      $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_SCOPE);
 
     if (!$input["scope"])
       $input["scope"] = NULL;
@@ -719,7 +665,7 @@ class OAuth2 {
    */
   protected function getClientCredentials() {
     if (isset($_SERVER["PHP_AUTH_USER"]) && $_POST && isset($_POST["client_id"]))
-      $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_CLIENT);
+      $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT);
 
     // Try basic auth
     if (isset($_SERVER["PHP_AUTH_USER"]))
@@ -734,7 +680,7 @@ class OAuth2 {
     }
 
     // No credentials were specified
-    $this->errorJsonResponse(OAUTH2_HTTP_BAD_REQUEST, OAUTH2_ERROR_INVALID_CLIENT);
+    $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT);
   }
 
   // End-user/client Authorization (Section 3 of IETF Draft).
@@ -754,8 +700,8 @@ class OAuth2 {
    */
   public function getAuthorizeParams(array $inputData = NULL) {
     $filters = array(
-      "client_id" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => OAUTH2_CLIENT_ID_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
-      "response_type" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => OAUTH2_AUTH_RESPONSE_TYPE_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
+      "client_id" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => self::CLIENT_ID_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
+      "response_type" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => self::RESPONSE_TYPE_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
       "redirect_uri" => array("filter" => FILTER_SANITIZE_URL),
       "state" => array("flags" => FILTER_REQUIRE_SCALAR),
       "scope" => array("flags" => FILTER_REQUIRE_SCALAR),
@@ -769,29 +715,29 @@ class OAuth2 {
     // Make sure a valid client id was supplied
     if (!$input["client_id"]) {
       if ($input["redirect_uri"])
-        $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_INVALID_CLIENT, NULL, NULL, $input["state"]);
+        $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_INVALID_CLIENT, NULL, NULL, $input["state"]);
 
-      $this->errorJsonResponse(OAUTH2_HTTP_FOUND, OAUTH2_ERROR_INVALID_CLIENT); // We don't have a good URI to use
+      $this->handleError(self::HTTP_FOUND, self::ERROR_INVALID_CLIENT); // We don't have a good URI to use
     }
 
     // redirect_uri is not required if already established via other channels
     // check an existing redirect URI against the one supplied
-    $stored = $this->getClientDetails($input["client_id"]);
+    $stored = $this->storage->getClientDetails($input["client_id"]);
 
     // At least one of: existing redirect URI or input redirect URI must be specified
     if (!$stored && !$input["redirect_uri"])
-      $this->errorJsonResponse(OAUTH2_HTTP_FOUND, OAUTH2_ERROR_INVALID_REQUEST);
+      $this->handleError(self::HTTP_FOUND, self::ERROR_INVALID_REQUEST, 'Missing redirect URI.');
 
     // getRedirectUri() should return FALSE if the given client ID is invalid
     // this probably saves us from making a separate db call, and simplifies the method set
     if ($stored === FALSE)
-      $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_INVALID_CLIENT, NULL, NULL, $input["state"]);
+      $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_INVALID_CLIENT, NULL, NULL, $input["state"]);
 
     // If there's an existing uri and one from input, verify that they match
     if ($stored['redirect_uri'] && $input["redirect_uri"]) {
       // Ensure that the input uri starts with the stored uri
       if (strcasecmp(substr($input["redirect_uri"], 0, strlen($stored['redirect_uri'])), $stored['redirect_uri']) !== 0)
-        $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_REDIRECT_URI_MISMATCH, NULL, NULL, $input["state"]);
+        $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_REDIRECT_URI_MISMATCH, NULL, NULL, $input["state"]);
     }
     elseif ($stored['redirect_uri']) { // They did not provide a uri from input, so use the stored one
       $input["redirect_uri"] = $stored['redirect_uri'];
@@ -799,19 +745,19 @@ class OAuth2 {
 
     // type and client_id are required
     if (!$input["response_type"])
-      $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_INVALID_REQUEST, 'Invalid or missing response type.', NULL, $input["state"]);
+      $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_INVALID_REQUEST, 'Invalid or missing response type.', NULL, $input["state"]);
 
     // Check requested auth response type against the list of supported types
-    if (array_search($input["response_type"], $this->getSupportedAuthResponseTypes()) === FALSE)
-      $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_UNSUPPORTED_RESPONSE_TYPE, NULL, NULL, $input["state"]);
+    if (array_search($input["response_type"], $this->getVariable(self::CONFIG_SUPPORTED_AUTH, array())) === FALSE)
+      $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_UNSUPPORTED_RESPONSE_TYPE, NULL, NULL, $input["state"]);
 
     // Restrict clients to certain authorization response types
-    if ($this->checkRestrictedAuthResponseType($input["client_id"], $input["response_type"]) === FALSE)
-      $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_UNAUTHORIZED_CLIENT, NULL, NULL, $input["state"]);
+    if ($this->storage->checkRestrictedAuthResponseType($input["client_id"], $input["response_type"]) === FALSE)
+      $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_UNAUTHORIZED_CLIENT, NULL, NULL, $input["state"]);
 
     // Validate that the requested scope is supported
-    if ($input["scope"] && !$this->checkScope($input["scope"], $this->getSupportedScopes()))
-      $this->errorDoRedirectUriCallback($input["redirect_uri"], OAUTH2_ERROR_INVALID_SCOPE, NULL, NULL, $input["state"]);
+    if ($input["scope"] && !$this->checkScope($input["scope"]))
+      $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_INVALID_SCOPE, NULL, NULL, $input["state"]);
 
     // Return retreived client details together with input
     return ($input + $stored);
@@ -856,13 +802,13 @@ class OAuth2 {
       $result["query"]["state"] = $state;
 
     if ($is_authorized === FALSE) {
-      $result["query"]["error"] = OAUTH2_ERROR_USER_DENIED;
+      $result["query"]["error"] = self::ERROR_USER_DENIED;
     }
     else {
-      if ($response_type == self::AUTH_RESPONSE_TYPE_AUTH_CODE || $response_type == self::AUTH_RESPONSE_TYPE_CODE_AND_TOKEN)
+      if ($response_type == self::RESPONSE_TYPE_AUTH_CODE || $response_type == self::RESPONSE_TYPE_CODE_AND_TOKEN)
         $result["query"]["code"] = $this->createAuthCode($client_id, $user_id, $redirect_uri, $scope);
 
-      if ($response_type == self::AUTH_RESPONSE_TYPE_ACCESS_TOKEN || $response_type == self::AUTH_RESPONSE_TYPE_CODE_AND_TOKEN)
+      if ($response_type == self::RESPONSE_TYPE_ACCESS_TOKEN || $response_type == self::RESPONSE_TYPE_CODE_AND_TOKEN)
         $result["fragment"] = $this->createAccessToken($client_id, $user_id, $scope);
     }
 
@@ -885,7 +831,7 @@ class OAuth2 {
    * @ingroup oauth2_section_3
    */
   private function doRedirectUriCallback($redirect_uri, $params) {
-    header("HTTP/1.1 ". OAUTH2_HTTP_FOUND);
+    header("HTTP/1.1 ". self::HTTP_FOUND);
     header("Location: " . $this->buildUri($redirect_uri, $params));
     exit;
   }
@@ -949,7 +895,7 @@ class OAuth2 {
     $this->storage->setAccessToken($token["access_token"], $client_id, $user_id, time() + $this->getVariable(self::CONFIG_ACCESS_LIFETIME), $scope);
 
     // Issue a refresh token also, if we support them
-    if (in_array(OAUTH2_GRANT_TYPE_REFRESH_TOKEN, $this->storage->getSupportedGrantTypes())) {
+    if (in_array(self::GRANT_TYPE_REFRESH_TOKEN, $this->storage->getSupportedGrantTypes())) {
       $token["refresh_token"] = $this->genAccessToken();
       $this->storage->setRefreshToken($token["refresh_token"], $client_id, $user_id, time() + $this->getVariable(self::CONFIG_REFRESH_LIFETIME), $scope);
       // If we've granted a new refresh token, expire the old one
@@ -1094,6 +1040,8 @@ class OAuth2 {
 
   /**
    * Send out error message in JSON.
+   * You can override this if you want to handle errors differently (but
+   * this implementation adheres to the OAuth2 protocol).
    *
    * @param $http_status_code
    *   HTTP status code message as predefined.
@@ -1112,7 +1060,7 @@ class OAuth2 {
    *
    * @ingroup oauth2_error
    */
-  private function errorJsonResponse($http_status_code, $error, $error_description = NULL, $error_uri = NULL) {
+  protected function handleError($http_status_code, $error, $error_description = NULL, $error_uri = NULL) {
     $result['error'] = $error;
 
     if ($this->getVariable(self::CONFIG_DISPLAY_ERROR) && $error_description)
