@@ -25,10 +25,13 @@
  * @author David Rochwerger <catch.dave@gmail.com>
  *
  * @see http://code.google.com/p/oauth2-php/
+ * @see 
  */
 
 /**
- * OAuth2.0 draft v10 server-side implementation.
+ * OAuth2.0 draft v16 server-side implementation.
+ * 
+ * @todo Add support for Message Authentication Code (MAC) token type.
  *
  * @author Originally written by Tim Ridgely <tim.ridgely@gmail.com>.
  * @author Updated to draft v10 by Aaron Parecki <aaron@parecki.com>.
@@ -66,6 +69,7 @@ class OAuth2 {
   const DEFAULT_ACCESS_TOKEN_LIFETIME  = 3600; 
   const DEFAULT_REFRESH_TOKEN_LIFETIME = 1209600; 
   const DEFAULT_AUTH_CODE_LIFETIME     = 30;
+  const DEFAULT_WWW_REALM              = 'Service';
   
   /**
    * Configurable options.
@@ -77,6 +81,8 @@ class OAuth2 {
   const CONFIG_AUTH_LIFETIME     = 'auth_code_lifetime';     // The lifetime of auth code in seconds.
   const CONFIG_DISPLAY_ERROR     = 'display_error';          // Whether to show verbose error messages in the response.
   const CONFIG_SUPPORTED_SCOPES  = 'supported_scopes';       // Array of scopes you want to support
+  const CONFIG_TOKEN_TYPE        = 'token_type';             // Token type to respond with. Currently only "Bearer" supported.
+  const CONFIG_WWW_REALM         = 'realm';
   
 	/**
    * Regex to filter out the client identifier (described in Section 2 of IETF draft).
@@ -104,18 +110,24 @@ class OAuth2 {
    */
   
   /**
-   * Used to define the name of the OAuth access token parameter (POST/GET/etc.).
+   * Used to define the name of the OAuth access token parameter
+   * (POST & GET). This is for the "bearer" token type.
+   * Other token types may use different methods and names.
    *
-   * IETF Draft sections 5.1.2 and 5.1.3 specify that it should be called
-   * "oauth_token" but other implementations use things like "access_token".
+   * IETF Draft section 2 specifies that it should be called "bearer_token"
    *
-   * I won't be heartbroken if you change it, but it might be better to adhere
-   * to the spec.
-   *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.1.2
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.1.3
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.2
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.3
    */
-  const TOKEN_PARAM_NAME = 'oauth_token';
+  const TOKEN_PARAM_NAME = 'bearer_token';
+  
+  /**
+   * When using the bearer token type, there is a specifc Authorization header
+   * required: "Bearer"
+   * 
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.1
+   */
+  const TOKEN_BEARER_HEADER_NAME = 'Bearer';
   
   /**
    * @}
@@ -185,6 +197,16 @@ class OAuth2 {
    */
   
   /**
+   * Possible token types as defined by draft 16.
+   * 
+   * @todo Add support for mac (and maybe other types?)
+   * 
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-7.1 
+   */
+  const TOKEN_TYPE_BEARER = 'bearer';
+  const TOKEN_TYPE_MAC    = 'mac'; // Currently unsupported
+  
+  /**
    * @defgroup self::HTTP_status HTTP status code
    * @{
    */
@@ -199,6 +221,7 @@ class OAuth2 {
   const HTTP_FOUND        = '302 Found';
   const HTTP_BAD_REQUEST  = '400 Bad Request';
   const HTTP_UNAUTHORIZED = '401 Unauthorized';
+  const HTTP_FORBIDDEN    = '403 Forbidden';
   const HTTP_UNAVAILABLE  = '503 Service Unavailable';
   
   /**
@@ -323,6 +346,9 @@ class OAuth2 {
   		self::CONFIG_ACCESS_LIFETIME  => self::DEFAULT_ACCESS_TOKEN_LIFETIME,
   		self::CONFIG_REFRESH_LIFETIME => self::DEFAULT_REFRESH_TOKEN_LIFETIME, 
   		self::CONFIG_AUTH_LIFETIME    => self::DEFAULT_AUTH_CODE_LIFETIME,
+  		self::CONFIG_WWW_REALM        => self::DEFAULT_WWW_REALM,
+  		self::CONFIG_TOKEN_TYPE       => self::TOKEN_TYPE_BEARER,
+  		self::CONFIG_DISPLAY_ERROR    => true, // Default to display error reasons
       self::CONFIG_SUPPORTED_SCOPES => array() // This is expected to be passed in on construction. Scopes can be an aribitrary string.  
   	);
   }
@@ -397,24 +423,96 @@ class OAuth2 {
    * @ingroup oauth2_section_5
    */
   public function verifyAccessToken($token_param, $scope = NULL, $exit_not_present = TRUE, $exit_invalid = TRUE, $exit_expired = TRUE, $exit_scope = TRUE) {
+    $uri = NULL; // TODO: Investigate if we need to specify/use this
+    
     if ($token_param === FALSE) // Access token was not provided
-      return $exit_not_present ? $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'The request is missing a required parameter, includes an unsupported parameter or parameter value, repeats the same parameter, uses more than one method for including an access token, or is otherwise malformed.', NULL) : FALSE;
+      return $exit_not_present ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'The request is missing a required parameter, includes an unsupported parameter or parameter value, repeats the same parameter, uses more than one method for including an access token, or is otherwise malformed.', $uri, $scope) : FALSE;
     // Get the stored token data (from the implementing subclass)
     $token = $this->storage->getAccessToken($token_param);
     if ($token === NULL)
-      return $exit_invalid ? $this->handleError(self::HTTP_UNAUTHORIZED, self::ERROR_INVALID_GRANT, 'The access token provided is invalid.', NULL) : FALSE;
+      return $exit_invalid ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_UNAUTHORIZED, self::ERROR_INVALID_GRANT, 'The access token provided is invalid.', $uri, $scope) : FALSE;
 
     // Check token expiration (I'm leaving this check separated, later we'll fill in better error messages)
     if (isset($token["expires"]) && time() > $token["expires"])
-      return $exit_expired ? $this->handleError(self::HTTP_UNAUTHORIZED, self::ERROR_INVALID_GRANT, 'The access token provided has expired.', NULL) : FALSE;
+      return $exit_expired ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_UNAUTHORIZED, self::ERROR_INVALID_GRANT, 'The access token provided has expired.', $uri, $scope) : FALSE;
 
     // Check scope, if provided
     // If token doesn't have a scope, it's NULL/empty, or it's insufficient, then throw an error
     if ($scope && (!isset($token["scope"]) || !$token["scope"] || !$this->checkScope($scope, $token["scope"])))
-      return $exit_scope ? $this->handleError(self::HTTP_FORBIDDEN, self::ERROR_INSUFFICIENT_SCOPE, 'The request requires higher privileges than provided by the access token.', NULL) : FALSE;
+      return $exit_scope ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_FORBIDDEN, self::ERROR_INSUFFICIENT_SCOPE, 'The request requires higher privileges than provided by the access token.', $uri, $scope) : FALSE;
 
     return $token;
   }
+  
+  /**
+   * As per the Bearer spec (draft 4, section 2) - there are three ways for a client
+   * to specify the bearer token, in order of preference: Authorization Header,
+   * POST and GET.
+   * 
+   * NB: Resource servers MUST accept tokens via the Authorization scheme
+   * (http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2).
+   * 
+   * This is a convenience function that can be used to get the token, which can then
+   * be passed to verifyAccessToken(). The constraints specified by the draft are
+   * attempted to be adheared to in this method.
+   * 
+   * @todo Should we enforce TLS/SSL in this function?
+   * 
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.2
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.3
+   * 
+   * We don't want to test this functionality as it relies on superglobals and headers:
+   * @codeCoverageIgnoreStart
+   */
+  public function getBearerToken() {
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+      $headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
+    }
+    elseif (function_exists('apache_request_headers')) {
+      $requestHeaders = apache_request_headers();
+
+      if (isset($requestHeaders['Authorization'])) {
+        $headers = trim($requestHeaders['Authorization']);
+      }
+    }
+    
+    // Check that exactly one method was used
+    $methodsUsed = isset($headers) + isset($_GET[self::TOKEN_PARAM_NAME]) + isset($_POST[self::TOKEN_PARAM_NAME]);
+    if ( $methodsUsed > 1 ) { 
+      $this->errorJsonResponse(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Only one method may be used to authenticate at a time (Auth header, GET or POST).');
+    }
+    elseif ($methodsUsed == 0) {
+      $this->errorJsonResponse(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'The bearer token was not found.');
+    }
+    
+    // HEADER: Get the bearer token from the header
+    if (isset($headers)) {
+      if (!preg_match('/'.self::TOKEN_BEARER_HEADER_NAME.'\s(\S+)/', $headers, $matches)) {
+        $this->errorJsonResponse(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Malformed auth header');
+      }
+      
+      return $matches[1];
+    }
+    
+    // POST: Get the token form POST
+    if (isset($_POST[self::TOKEN_PARAM_NAME])) {
+      if ($_SERVER['REQUEST_METHOD'] != 'POST') {
+        $this->errorJsonResponse(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'When putting the token in the body, the method must be POST.');
+      }
+      
+      // IETF specifies content-type. NB: Not all webservers populate this _SERVER variable
+      if (isset($_SERVER['CONTENT_TYPE']) && $_SERVER['CONTENT_TYPE'] != 'application/x-www-form-urlencoded') {
+        $this->errorJsonResponse(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'The content type for POST requests must be "application/x-www-form-urlencoded"');
+      }
+      
+      return $_POST[self::TOKEN_PARAM_NAME];
+    }
+   
+    // GET method
+    return $_GET[self::TOKEN_PARAM_NAME];
+  }
+  /** @codeCoverageIgnoreEnd */
 
   /**
    * Check if everything in required scope is contained in available scope.
@@ -669,7 +767,7 @@ class OAuth2 {
     // Basic Authentication is used
     if (!empty($authHeaders['PHP_AUTH_USER']) ) {
       if ($authHeaders['PHP_AUTH_USER'] != $inputData['client_id']) {
-        $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, 'The username in the authorization header must macth the client_id in the body of the request');
+        $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, 'The username in the authorization header must match the client_id in the body of the request');
       }
       
       return array($authHeaders['PHP_AUTH_USER'], $authHeaders['PHP_AUTH_PW']);
@@ -803,11 +901,12 @@ class OAuth2 {
       $result["query"]["error"] = self::ERROR_USER_DENIED;
     }
     else {
-      if ($response_type == self::RESPONSE_TYPE_ACCESS_CODE)
+      if ($response_type == self::RESPONSE_TYPE_AUTH_CODE) {
         $result["query"]["code"] = $this->createAuthCode($client_id, $user_id, $redirect_uri, $scope);
-
-      if ($response_type == self::RESPONSE_TYPE_ACCESS_TOKEN)
+      }
+      elseif ($response_type == self::RESPONSE_TYPE_ACCESS_TOKEN) {
         $result["fragment"] = $this->createAccessToken($client_id, $user_id, $scope);
+      }
     }
 
     $this->doRedirectUriCallback($redirect_uri, $result);
@@ -886,8 +985,9 @@ class OAuth2 {
   	
     $token = array(
       "access_token" => $this->genAccessToken(),
-      "expires_in" => $this->getVariable(self::CONFIG_ACCESS_LIFETIME),
-      "scope" => $scope
+      "expires_in"   => $this->getVariable(self::CONFIG_ACCESS_LIFETIME),
+      "token_type"   => $this->getVariable(self::CONFIG_TOKEN_TYPE),
+      "scope"        => $scope
     );
 
     $this->storage->setAccessToken($token["access_token"], $client_id, $user_id, time() + $this->getVariable(self::CONFIG_ACCESS_LIFETIME), $scope);
@@ -896,6 +996,7 @@ class OAuth2 {
     if ($this->storage instanceof IOAuth2RefreshTokens) {
       $token["refresh_token"] = $this->genAccessToken();
       $this->storage->setRefreshToken($token["refresh_token"], $client_id, $user_id, time() + $this->getVariable(self::CONFIG_REFRESH_LIFETIME), $scope);
+      
       // If we've granted a new refresh token, expire the old one
       if ($this->oldRefreshToken)
         $this->storage->unsetRefreshToken($this->oldRefreshToken);
@@ -959,12 +1060,11 @@ class OAuth2 {
 
   /**
    * Pull out the Authorization HTTP header and return it.
-   * According to draft 16, standard basic authentication is the only
+   * According to draft 16, standard basic authorization are the only
    * header variables required (this does not apply to extended grant types).
    *
    * Implementing classes may need to override this function if need be.
    * 
-   * @todo Investiagte if we need to check PHP_AUTH_DIGEST...
    * @todo We may need to re-implement pulling out apache headers to support extended grant types
    *
    * @return
@@ -1067,6 +1167,67 @@ class OAuth2 {
     $this->sendJsonHeaders();
     echo json_encode($result);
 
+    exit;
+  }
+  
+  /**
+   * Send an error header with the given realm and an error, if
+   * provided.
+   * Suitable for the bearer token type.
+   *
+   * @param $http_status_code
+   *   HTTP status code message as predefined.
+   * @param $error
+   *   The "error" attribute is used to provide the client with the reason
+   *   why the access request was declined.
+   * @param $error_description
+   *   (optional) The "error_description" attribute provides a human-readable text
+   *   containing additional information, used to assist in the understanding
+   *   and resolution of the error occurred.
+   * @param $error_uri
+   *   (optional) The "error_uri" attribute provides a URI identifying a human-readable
+   *   web page with information about the error, used to offer the end-user
+   *   with additional information about the error. If the value is not an
+   *   absolute URI, it is relative to the URI of the requested protected
+   *   resource.
+   * @param $scope
+   *   A space-delimited list of scope values indicating the required scope
+   *   of the access token for accessing the requested resource.
+   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.4
+   *
+   * @ingroup oauth2_error
+   */
+   protected function errorWWWAuthenticateResponseHeader($http_status_code, $error, $error_description = NULL, $error_uri = NULL, $scope = NULL) {
+
+     $result = sprintf(
+     	 'WWW-Authenticate: %s realm="%s"',
+       $this->getVariable(self::CONFIG_TOKEN_TYPE),
+       $this->getVariable(self::CONFIG_WWW_REALM)
+     );
+
+    if ($error) {
+      $result .= ", error='" . $error . "'";
+    }
+    
+    if ($this->getVariable(self::CONFIG_DISPLAY_ERROR)) {
+      if ($error_description) {
+        $result .= ', error_description="' . $error_description . '"';
+      }
+      
+      if ($error_uri) {
+        $result .= ', error_uri="' . $error_uri . '"';
+      }
+    }
+    
+    // Scope, if provided
+    if ($scope) {
+      $result .= ', scope="' . $scope . '"';
+    }
+
+    // Set authorization header and exit
+    header("HTTP/1.1 ". $http_status_code);
+    header($result);
     exit;
   }
 }

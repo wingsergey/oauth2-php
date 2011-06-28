@@ -15,7 +15,7 @@ interface IOAuth2GrantCode {
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-2.1
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4.1.1
    */
-  const RESPONSE_TYPE_CODE = OAuth2::RESPONSE_TYPE_ACCESS_CODE;
+  const RESPONSE_TYPE_CODE = OAuth2::RESPONSE_TYPE_AUTH_CODE;
   
   /**
 	 * Fetch authorization code data (probably the most common grant type).
