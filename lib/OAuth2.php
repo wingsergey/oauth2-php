@@ -1202,7 +1202,7 @@ class OAuth2 {
 
      $result = sprintf(
      	 'WWW-Authenticate: %s realm="%s"',
-       $this->getVariable(self::CONFIG_TOKEN_TYPE),
+       ucwords($this->getVariable(self::CONFIG_TOKEN_TYPE)),
        $this->getVariable(self::CONFIG_WWW_REALM)
      );
 
@@ -1223,13 +1223,12 @@ class OAuth2 {
     }
     
     foreach ($details as $key => $value) {
-      $result .= ", $key = \"$value\"";
+      $result .= ", $key=\"$value\"";
     }
 
     // Set authorization header and exit
     header("HTTP/1.1 ". $http_status_code);
     header($result);
-    
     echo json_encode($details);
     exit;
   }
