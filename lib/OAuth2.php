@@ -466,12 +466,13 @@ class OAuth2 {
    *
    * @ingroup oauth2_section_5
    */
-  private function checkScope($required_scope) {
+  private function checkScope($required_scope, $available_scope) {
     // The required scope should match or be a subset of the available scope
     if (!is_array($required_scope))
-      $required_scope = explode(" ", $required_scope);
+      $required_scope = explode(' ', $required_scope);
 
-    $available_scope = $this->getVariable(self::CONFIG_SUPPORTED_SCOPES);
+    if (!is_array($available_scope))
+      $available_scope = explode(' ', $available_scope);
 
     return (count(array_diff($required_scope, $available_scope)) == 0);
   }
@@ -756,7 +757,7 @@ class OAuth2 {
       $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_UNAUTHORIZED_CLIENT, NULL, NULL, $input["state"]);
 
     // Validate that the requested scope is supported
-    if ($input["scope"] && !$this->checkScope($input["scope"]))
+    if ($input["scope"] && !$this->checkScope($input["scope"], $this->getVariable(self::CONFIG_SUPPORTED_SCOPES)))
       $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_INVALID_SCOPE, NULL, NULL, $input["state"]);
 
     // Return retreived client details together with input
