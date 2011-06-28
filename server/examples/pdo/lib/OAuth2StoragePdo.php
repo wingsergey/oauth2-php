@@ -10,11 +10,13 @@
 
 require_once __DIR__.'/../../../../lib/OAuth2.php';
 require_once __DIR__.'/../../../../lib/IOAuth2Storage.php';
+require_once __DIR__.'/../../../../lib/IOAuth2GrantCode.php';
+require_once __DIR__.'/../../../../lib/IOAuth2RefreshTokens.php';
 
 /**
  * PDO storage engine for the OAuth2 Library.
  */
-class OAuth2StoragePDO implements IOAuth2Storage {
+class OAuth2StoragePDO implements IOAuth2Storage, IOAuth2GrantCode, IOAuth2RefreshTokens {
 
   /**
    * Change this to something unique for your system
@@ -179,13 +181,6 @@ class OAuth2StoragePDO implements IOAuth2Storage {
   }
 
   /**
-   * Implements IOAuth2Storage::getSupportedGrantTypes().
-   */
-  public function getSupportedAuthResponseTypes() {
-		return array(OAuth2::RESPONSE_TYPE_AUTH_CODE, OAuth2::RESPONSE_TYPE_ACCESS_TOKEN);
-	}
-
-  /**
    * Implements IOAuth2Storage::getAuthCode().
    */
   public function getAuthCode($code) {
@@ -223,43 +218,6 @@ class OAuth2StoragePDO implements IOAuth2Storage {
     }
   }
   
-  /**
-   * This implentation supports auth code and refresh tokens.
-   * 
-   * @see IOAuth2Storage::getSupportedGrantTypes()
-   */
-  public function getSupportedGrantTypes() {
-    return array(OAuth2::GRANT_TYPE_AUTH_CODE, OAuth2::GRANT_TYPE_REFRESH_TOKEN);
-  }
-  
-  /**
-   * @see IOAuth2Storage::checkUserCredentials()
-   */
-  public function checkUserCredentials($client_id, $username, $password) {
-  	return NULL; // Not implemented
-  }
-  
-  /**
-   * @see IOAuth2Storage::checkNoneAccess()
-   */
-  public function checkNoneAccess($client_id) {
-  	return NULL; // Not implemented
-  }
-  
-  /**
-   * @see IOAuth2Storage::checkAssertion()
-   */
-  public function checkAssertion($client_id, $assertion_type, $assertion) {
-  	return NULL; // Not implemented
-  }
-
-  /**
-   * @see IOAuth2Storage::checkRestrictedAuthResponseType()
-   */
-  public function checkRestrictedAuthResponseType($client_id, $response_type) {
-    return TRUE; // Not implemented
-  }
-
   /**
    * @see IOAuth2Storage::checkRestrictedGrantType()
    */
