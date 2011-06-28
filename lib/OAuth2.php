@@ -1206,28 +1206,31 @@ class OAuth2 {
        $this->getVariable(self::CONFIG_WWW_REALM)
      );
 
-    if ($error) {
-      $result .= ", error='" . $error . "'";
-    }
-    
-    if ($this->getVariable(self::CONFIG_DISPLAY_ERROR)) {
-      if ($error_description) {
-        $result .= ', error_description="' . $error_description . '"';
-      }
-      
-      if ($error_uri) {
-        $result .= ', error_uri="' . $error_uri . '"';
-      }
-    }
+     $details = array();
+     $details['error'] = $error;
+     if ($this->getVariable(self::CONFIG_DISPLAY_ERROR)) {
+       if ($error_description) {
+         $details['error_description'] = $error_description;
+       }
+       if ($error_uri) {
+         $details['error_uri'] = $error_uri;
+       }
+     }
     
     // Scope, if provided
     if ($scope) {
-      $result .= ', scope="' . $scope . '"';
+      $details['scope'] = $scope;
+    }
+    
+    foreach ($details as $key => $value) {
+      $result .= ", $key = \"$value\"";
     }
 
     // Set authorization header and exit
     header("HTTP/1.1 ". $http_status_code);
     header($result);
+    
+    echo json_encode($details);
     exit;
   }
 }
