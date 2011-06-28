@@ -425,14 +425,19 @@ class OAuth2 {
   public function verifyAccessToken($token_param, $scope = NULL, $exit_not_present = TRUE, $exit_invalid = TRUE, $exit_expired = TRUE, $exit_scope = TRUE) {
     $uri = NULL; // TODO: Investigate if we need to specify/use this
     
-    if ($token_param === FALSE) // Access token was not provided
+    if (!$token_param) // Access token was not provided
       return $exit_not_present ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'The request is missing a required parameter, includes an unsupported parameter or parameter value, repeats the same parameter, uses more than one method for including an access token, or is otherwise malformed.', $uri, $scope) : FALSE;
+      
     // Get the stored token data (from the implementing subclass)
     $token = $this->storage->getAccessToken($token_param);
     if ($token === NULL)
       return $exit_invalid ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_UNAUTHORIZED, self::ERROR_INVALID_GRANT, 'The access token provided is invalid.', $uri, $scope) : FALSE;
 
-    // Check token expiration (I'm leaving this check separated, later we'll fill in better error messages)
+    // Check we have a well formed token
+    if (!isset($token["expires"]) || !isset($token["client_id"])) 
+      return $exit_expired ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_UNAUTHORIZED, self::ERROR_INVALID_GRANT, 'Malformed token (missing expires or client_id)', $uri, $scope) : FALSE;
+      
+    // Check token expiration (expires is a mandatory paramter)
     if (isset($token["expires"]) && time() > $token["expires"])
       return $exit_expired ? $this->errorWWWAuthenticateResponseHeader(self::HTTP_UNAUTHORIZED, self::ERROR_INVALID_GRANT, 'The access token provided has expired.', $uri, $scope) : FALSE;
 
@@ -531,63 +536,12 @@ class OAuth2 {
   private function checkScope($required_scope, $available_scope) {
     // The required scope should match or be a subset of the available scope
     if (!is_array($required_scope))
-      $required_scope = explode(' ', $required_scope);
+      $required_scope = explode(' ', trim($required_scope));
 
     if (!is_array($available_scope))
-      $available_scope = explode(' ', $available_scope);
+      $available_scope = explode(' ', trim($available_scope));
 
     return (count(array_diff($required_scope, $available_scope)) == 0);
-  }
-
-  /**
-   * Pulls the access token out of the HTTP request.
-   * Either from the Authorization header or GET/POST/etc.
-   *
-   * @param array
-   *   You can override the source of input data
-   * @param array
-   *   You can override the source of the authorization header data.
-   *   Be aware of the OAuth protocol specifications. 
-   * @return
-   *   Access token value if present, and FALSE if it isn't.
-   *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.1
-   *
-   * @ingroup oauth2_section_5
-   */
-  public function getAccessTokenParams(array $inputData=null, array $authHeaders=null) {
-    
-    // Input data by default can be either POST or GET
-    $inputData = isset($inputData) ? $inputData :  $_REQUEST;
-    
-    // Basic authorization header
-    $authHeaders = isset($authHeaders) ? $authHeaders :  $this->getAuthorizationHeader();
-    
-    if (!empty($authHeaders)) {
-      // Make sure only the auth header is set
-      if (isset($_GET[self::TOKEN_PARAM_NAME]) || isset($_POST[self::TOKEN_PARAM_NAME]))
-        $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Auth token found in GET or POST when token present in header');
-
-      $authHeaders = trim($authHeaders);
-
-      // Parse the rest of the header
-      if (preg_match('/\s*OAuth\s*="(.+)"/', substr($authHeaders, 5), $matches) == 0 || count($matches) < 2)
-        $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Malformed auth header');
-
-      return $matches[1];
-    }
-
-    if (isset($_GET[self::TOKEN_PARAM_NAME])) {
-      if (isset($_POST[self::TOKEN_PARAM_NAME])) // Both GET and POST are not allowed
-        $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Only send the token in GET or POST, not both');
-
-      return $_GET[self::TOKEN_PARAM_NAME];
-    }
-
-    if (isset($_POST[self::TOKEN_PARAM_NAME]))
-      return $_POST[self::TOKEN_PARAM_NAME];
-
-    return FALSE;
   }
 
   // Access token granting (Section 4).
@@ -617,7 +571,9 @@ class OAuth2 {
     );
 
     // Input data by default can be either POST or GET
-    $inputData = isset($inputData) ? $inputData :  $_REQUEST;
+    if (!isset($inputData)) {
+      $inputData = ($_SERVER['REQUEST_METHOD'] == 'POST') ? $_POST : $_GET;
+    }
     
     // Basic authorization header
     $authHeaders = isset($authHeaders) ? $authHeaders :  $this->getAuthorizationHeader();
