@@ -587,7 +587,7 @@ class OAuth2 {
         break;
         
       case self::GRANT_TYPE_REFRESH_TOKEN:
-      if ( !$this->storage->hasRefreshTokenSupport() ) {
+      if ( !($this->storage instanceof IOAuth2RefreshTokens) ) {
           $this->handleError(self::HTTP_BAD_REQUEST, self::ERROR_UNSUPPORTED_GRANT_TYPE);
         }
         
@@ -893,7 +893,7 @@ class OAuth2 {
     $this->storage->setAccessToken($token["access_token"], $client_id, $user_id, time() + $this->getVariable(self::CONFIG_ACCESS_LIFETIME), $scope);
 
     // Issue a refresh token also, if we support them
-    if (in_array(self::GRANT_TYPE_REFRESH_TOKEN, $this->storage->getSupportedGrantTypes())) {
+    if ($this->storage instanceof IOAuth2RefreshTokens) {
       $token["refresh_token"] = $this->genAccessToken();
       $this->storage->setRefreshToken($token["refresh_token"], $client_id, $user_id, time() + $this->getVariable(self::CONFIG_REFRESH_LIFETIME), $scope);
       // If we've granted a new refresh token, expire the old one

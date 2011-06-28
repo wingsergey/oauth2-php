@@ -136,13 +136,6 @@ class OAuth2StorageMongo implements IOAuth2Storage, IOAuth2GrantCode, IOAuth2Ref
   }
 
   /**
-   * Implements IOAuth2Storage::getSupportedGrantTypes().
-   */
-  public function getSupportedAuthResponseTypes() {
-		return array(OAuth2::RESPONSE_TYPE_AUTH_CODE, OAuth2::RESPONSE_TYPE_ACCESS_TOKEN);
-	}
-
-  /**
    * Implements IOAuth2Storage::getAuthCode().
    */
   public function getAuthCode($code) {
@@ -161,17 +154,6 @@ class OAuth2StorageMongo implements IOAuth2Storage, IOAuth2GrantCode, IOAuth2Ref
       "expires" => $expires,
       "scope" => $scope
     ));
-  }
-  
-  /**
-   * This implentation supports auth code and refresh tokens.
-   * 
-   * @see IOAuth2Storage::getSupportedGrantTypes()
-   */
-  public function getSupportedGrantTypes() {
-    return array(
-      OAuth2::GRANT_TYPE_AUTH_CODE,
-    );
   }
   
   /**
