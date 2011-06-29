@@ -4,7 +4,7 @@
  * Static test suite.
  */
 
-class OAuth2Suite extends PHPUnit_Framework_TestSuite {
+class All_OAuth2_Tests extends PHPUnit_Framework_TestSuite {
   
   /**
    * Constructs the test suite handler.
@@ -15,7 +15,6 @@ class OAuth2Suite extends PHPUnit_Framework_TestSuite {
     foreach (glob(__DIR__.'/*Test.php') as $filename) {
       require_once($filename);
       $class = basename($filename, '.php');
-    //  $this->addTest(new $class());
       $this->addTestSuite($class);
     }
   }
