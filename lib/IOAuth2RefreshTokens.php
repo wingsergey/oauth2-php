@@ -6,7 +6,7 @@
  * @author Dave Rochwerger <catch.dave@gmail.com>
  * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4.5
  */
-interface IOAuth2RefreshTokens {
+interface IOAuth2RefreshTokens extends IOAuth2Storage {
   
   /**
 	 * Grant refresh access tokens.

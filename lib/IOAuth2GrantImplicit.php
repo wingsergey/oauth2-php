@@ -6,7 +6,7 @@
  * @author Dave Rochwerger <catch.dave@gmail.com>
  * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4.2
  */
-interface IOAuth2GrantImplicit {
+interface IOAuth2GrantImplicit extends IOAuth2Storage {
 
   /**
    * The Implicit grant type supports a response type of "token". 

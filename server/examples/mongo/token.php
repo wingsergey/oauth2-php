@@ -12,4 +12,9 @@
 require "lib/MongoOAuth2.php";
 
 $oauth = new MongoOAuth2();
-$oauth->grantAccessToken();
+try {
+  $oauth->grantAccessToken();
+}
+catch (OAuth2ServerException $oauthError) {
+  $oauthError->sendHttpResponse();
+}

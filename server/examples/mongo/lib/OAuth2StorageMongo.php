@@ -14,7 +14,7 @@ require_once __DIR__.'/../../../../lib/IOAuth2RefreshTokens.php';
 /**
  * Mongo storage engine for the OAuth2 Library.
  */
-class OAuth2StorageMongo implements IOAuth2Storage, IOAuth2GrantCode, IOAuth2RefreshTokens {
+class OAuth2StorageMongo implements IOAuth2GrantCode, IOAuth2RefreshTokens {
 
   /**
    * Change this to something unique for your system

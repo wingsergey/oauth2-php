@@ -16,7 +16,7 @@ require_once __DIR__.'/../../../../lib/IOAuth2RefreshTokens.php';
 /**
  * PDO storage engine for the OAuth2 Library.
  */
-class OAuth2StoragePDO implements IOAuth2Storage, IOAuth2GrantCode, IOAuth2RefreshTokens {
+class OAuth2StoragePDO implements IOAuth2GrantCode, IOAuth2RefreshTokens {
 
   /**
    * Change this to something unique for your system

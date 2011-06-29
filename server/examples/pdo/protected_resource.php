@@ -13,7 +13,12 @@ require "lib/OAuth2StoragePDO.php";
 
 $token = isset($_GET[OAuth2::TOKEN_PARAM_NAME]) ? $_GET[OAuth2::TOKEN_PARAM_NAME] : null;
 $oauth = new OAuth2(new OAuth2StoragePDO());
-$oauth->verifyAccessToken($token);
+
+try {
+  $oauth->verifyAccessToken($token);
+} catch (OAuth2ServerException $oauthError) {
+  $oauthError->sendHttpResponse();
+}
 
 // With a particular scope, you'd do:
 // $oauth->verifyAccessToken("scope_name");
