@@ -6,7 +6,7 @@ require_once(__DIR__ . '/../lib/IOAuth2GrantCode.php');
 /**
  * OAuth2 test case.
  */
-class OAuth2Test extends PHPUnit_Extensions_OutputTestCase {
+class OAuth2Test extends PHPUnit_Framework_TestCase {
   
   /**
    * @var OAuth2
@@ -18,22 +18,6 @@ class OAuth2Test extends PHPUnit_Extensions_OutputTestCase {
    * @var string
    */
   private $tokenId = 'my_token';
-  
-  /**
-   * Prepares the environment before running a test.
-   */
-  protected function setUp() {
-    parent::setUp ();
-//    $this->fixture = new OAuth2(/* parameters */);
-  }
-  
-  /**
-   * Cleans up the environment after running a test.
-   */
-  protected function tearDown() {
-    $this->fixture = null;
-    parent::tearDown ();
-  }
   
   /**
    * Tests OAuth2->verifyAccessToken() with a missing token
@@ -143,7 +127,7 @@ class OAuth2Test extends PHPUnit_Extensions_OutputTestCase {
   }
   
   /**
-   * Tests OAuth2->grantAccessToken()
+   * Tests OAuth2->grantAccessToken() for missing data
    * 
    * @dataProvider generateEmptyDataForGrant
    */
@@ -158,7 +142,7 @@ class OAuth2Test extends PHPUnit_Extensions_OutputTestCase {
   /**
    * Tests OAuth2->grantAccessToken()
    * 
-   * Tests the different ways a client credentials can be provided.
+   * Tests the different ways client credentials can be provided.
    */
   public function testGrantAccessTokenCheckClientCredentials() {
     $mockStorage = $this->getMock('IOAuth2Storage');
@@ -170,7 +154,7 @@ class OAuth2Test extends PHPUnit_Extensions_OutputTestCase {
     $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE);
     $authHeaders = array();
     
-    // First, confirm that an non client related error is thrown:
+    // First, confirm that an non-client related error is thrown:
     try {
       $this->fixture->grantAccessToken($inputData, $authHeaders);
       $this->fail('The expected exception OAuth2ServerException was not thrown');
@@ -252,25 +236,6 @@ class OAuth2Test extends PHPUnit_Extensions_OutputTestCase {
     catch ( OAuth2ServerException $e ) {
       $this->assertEquals(OAuth2::ERROR_INVALID_GRANT, $e->getMessage());
     }
-  }
-  
-  /**
-   * Tests OAuth2->grantAccessToken() with successful Auth code grant
-   * 
-   */
-  public function testGrantAccessTokenWithGrantAuthCodeSuccess() {
-    $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'redirect_uri' => 'http://www.example.com/my/subdir', 'client_id' => 'my_little_app', 'client_secret' => 'b', 'code'=> 'foo');
-    $storedToken = array('redirect_uri' => 'http://www.example.com', 'client_id' => 'my_little_app', 'expires' => time() + 60);
-    
-    $mockStorage = $this->createBaseMock('IOAuth2GrantCode');
-    $mockStorage->expects($this->any())
-      ->method('getAuthCode')
-      ->will($this->returnValue($storedToken));
-      
-    // Successful token grant will return a JSON encoded token:
-    $this->expectOutputRegex('/{"access_token":".*","expires_in":\d+,"token_type":"bearer"/');
-    $this->fixture = new OAuth2($mockStorage);
-    $this->fixture->grantAccessToken($inputData, array(), FALSE);
   }
   
   /**
