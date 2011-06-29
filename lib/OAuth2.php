@@ -677,9 +677,6 @@ class OAuth2 {
        throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Invalid grant_type parameter or parameter missing');
     }
 
-    // Scope parameter and token value are optional:
-    if (!isset($input["scope"]))
-      $input["scope"] = NULL;
     if (!isset($stored["scope"]))
       $stored["scope"] = NULL;
       
@@ -740,6 +737,7 @@ class OAuth2 {
 
   /**
    * Pull the authorization request data out of the HTTP request.
+   * The redirect_uri is mandatory as per draft 16.
    *
    * @param $inputData - The draft specifies that the parameters should be
    * retreived from GET, but you can override to whatever method you like.
@@ -748,8 +746,8 @@ class OAuth2 {
    *   the user for approval if valid.
    *
    * @throws OAuth2ServerException
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3
-   *
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4
+   * 
    * @ingroup oauth2_section_3
    */
   public function getAuthorizeParams(array $inputData = NULL) {
@@ -765,51 +763,38 @@ class OAuth2 {
     	$inputData = $_GET;
     }
     $input = filter_var_array($inputData, $filters);
-
-    // Make sure a valid client id was supplied
+    
+    // Make sure a valid client id was supplied (we can not redirect because we were unable to verify the URI)
     if (!$input["client_id"]) {
-      if ($input["redirect_uri"])
-        $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_INVALID_CLIENT, NULL, NULL, $input["state"]);
-
       throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_INVALID_CLIENT); // We don't have a good URI to use
     }
-
-    // redirect_uri is not required if already established via other channels
-    // check an existing redirect URI against the one supplied
+    
+    // Get client details
     $stored = $this->storage->getClientDetails($input["client_id"]);
-
-    // At least one of: existing redirect URI or input redirect URI must be specified
-    if (!$stored && !$input["redirect_uri"])
-      throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_INVALID_REQUEST, 'Missing redirect URI.');
-
-    // getRedirectUri() should return FALSE if the given client ID is invalid
-    // this probably saves us from making a separate db call, and simplifies the method set
-    if ($stored === FALSE)
-      $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_INVALID_CLIENT, NULL, NULL, $input["state"]);
-
-    // If there's an existing uri and one from input, verify that they match
-    if ($stored['redirect_uri'] && $input["redirect_uri"]) {
-      // Ensure that the input uri starts with the stored uri
-      if (strcasecmp(substr($input["redirect_uri"], 0, strlen($stored['redirect_uri'])), $stored['redirect_uri']) !== 0)
-        $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_REDIRECT_URI_MISMATCH, NULL, NULL, $input["state"]);
+    if ($stored === FALSE) {
+      throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_INVALID_CLIENT);
     }
-    elseif ($stored['redirect_uri']) { // They did not provide a uri from input, so use the stored one
-      $input["redirect_uri"] = $stored['redirect_uri'];
+    
+    // Make sure a valid redirect_uri was supplied. It is required and must match the stored one.
+    // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4.1.2.1
+    // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4.2.2.1
+    if (!$input["redirect_uri"] || strcasecmp(substr($input["redirect_uri"], 0, strlen($stored['redirect_uri'])), $stored['redirect_uri']) !== 0) {
+      throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_REDIRECT_URI_MISMATCH, 'The rediect URI provided is missing or does not match');
     }
 
     // type and client_id are required
     if (!$input["response_type"])
-      $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_INVALID_REQUEST, 'Invalid or missing response type.', NULL, $input["state"]);
+      throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_INVALID_REQUEST, 'Invalid or missing response type.', $input["state"]);
 
     // Check requested auth response type against interfaces of storage engine
     $reflect = new ReflectionClass($this->storage);
     if ( !$reflect->hasConstant('RESPONSE_TYPE_'.strtoupper($input['response_type'])) ) {
-      $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_UNSUPPORTED_RESPONSE_TYPE, NULL, NULL, $input["state"]);
+      throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_UNSUPPORTED_RESPONSE_TYPE, NULL, $input["state"]);
     }
 
     // Validate that the requested scope is supported
     if ($input["scope"] && !$this->checkScope($input["scope"], $this->getVariable(self::CONFIG_SUPPORTED_SCOPES)))
-      $this->errorDoRedirectUriCallback($input["redirect_uri"], self::ERROR_INVALID_SCOPE, NULL, NULL, $input["state"]);
+      throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_INVALID_SCOPE, NULL, $input["state"]);
 
     // Return retreived client details together with input
     return ($input + $stored);
@@ -844,6 +829,11 @@ class OAuth2 {
    * @ingroup oauth2_section_3
    */
   public function finishClientAuthorization($is_authorized, $user_id = NULL, $params = array()) {
+    
+    // We repeat this, because we need to re-validate. In theory, this could be POSTed
+    // by a 3rd-party (because we are not internally enforcing NONCEs, etc)
+    $params = $this->getAuthorizeParams($params);
+    
     $params += array(
       'scope' => NULL,
       'state' => NULL,
@@ -854,7 +844,7 @@ class OAuth2 {
       $result["query"]["state"] = $state;
 
     if ($is_authorized === FALSE) {
-      $result["query"]["error"] = self::ERROR_USER_DENIED;
+      throw new OAuth2RedirectException($redirect_uri, self::ERROR_USER_DENIED, NULL, $state);
     }
     else {
       if ($response_type == self::RESPONSE_TYPE_AUTH_CODE) {
@@ -1047,44 +1037,5 @@ class OAuth2 {
   private function sendJsonHeaders() {
     header("Content-Type: application/json");
     header("Cache-Control: no-store");
-  }
-
-  /**
-   * Redirect the end-user's user agent with error message.
-   *
-   * @param $redirect_uri
-   *   An absolute URI to which the authorization server will redirect the
-   *   user-agent to when the end-user authorization step is completed.
-   * @param $error
-   *   A single error code as described in Section 3.2.1.
-   * @param $error_description
-   *   (optional) A human-readable text providing additional information,
-   *   used to assist in the understanding and resolution of the error
-   *   occurred.
-   * @param $error_uri
-   *   (optional) A URI identifying a human-readable web page with
-   *   information about the error, used to provide the end-user with
-   *   additional information about the error.
-   * @param $state
-   *   (optional) REQUIRED if the "state" parameter was present in the client
-   *   authorization request. Set to the exact value received from the client.
-   *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-3.2
-   *
-   * @ingroup oauth2_error
-   */
-  private function errorDoRedirectUriCallback($redirect_uri, $error, $error_description = NULL, $error_uri = NULL, $state = NULL) {
-    $result["query"]["error"] = $error;
-
-    if ($state)
-      $result["query"]["state"] = $state;
-
-    if ($error_description)
-      $result["query"]["error_description"] = $error_description;
-
-    if ($error_uri)
-      $result["query"]["error_uri"] = $error_uri;
-
-    $this->doRedirectUriCallback($redirect_uri, $result);
   }
 }
