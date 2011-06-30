@@ -46,7 +46,6 @@ class OAuth2ServerException extends Exception {
    * @ingroup oauth2_error
    */
   public function sendHttpResponse() {
-    
     header("HTTP/1.1 " . $this->httpCode);
     $this->sendHeaders();
     echo (string) $this;

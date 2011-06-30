@@ -46,6 +46,7 @@ class OAuth2RedirectException extends OAuth2ServerException {
   protected function sendHeaders() {
     $params = array('query' => $this->errorData);
     header("Location: " . $this->buildUri($this->redirectUri, $params));
+    exit; // No point in printing out data if we're redirecting
   }
   
   /**

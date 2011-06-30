@@ -77,12 +77,13 @@ class OAuth2 {
    *  
    * @var string
    */
-  const CONFIG_ACCESS_LIFETIME   = 'access_token_lifetime';  // The lifetime of access token in seconds.
-  const CONFIG_REFRESH_LIFETIME  = 'refresh_token_lifetime'; // The lifetime of refresh token in seconds.
-  const CONFIG_AUTH_LIFETIME     = 'auth_code_lifetime';     // The lifetime of auth code in seconds.
-  const CONFIG_SUPPORTED_SCOPES  = 'supported_scopes';       // Array of scopes you want to support
-  const CONFIG_TOKEN_TYPE        = 'token_type';             // Token type to respond with. Currently only "Bearer" supported.
-  const CONFIG_WWW_REALM         = 'realm';
+  const CONFIG_ACCESS_LIFETIME        = 'access_token_lifetime';  // The lifetime of access token in seconds.
+  const CONFIG_REFRESH_LIFETIME       = 'refresh_token_lifetime'; // The lifetime of refresh token in seconds.
+  const CONFIG_AUTH_LIFETIME          = 'auth_code_lifetime';     // The lifetime of auth code in seconds.
+  const CONFIG_SUPPORTED_SCOPES       = 'supported_scopes';       // Array of scopes you want to support
+  const CONFIG_TOKEN_TYPE             = 'token_type';             // Token type to respond with. Currently only "Bearer" supported.
+  const CONFIG_WWW_REALM              = 'realm';
+  const CONFIG_ENFORCE_INPUT_REDIRECT = 'enforce_redirect';
   
 	/**
    * Regex to filter out the client identifier (described in Section 2 of IETF draft).
@@ -343,12 +344,13 @@ class OAuth2 {
    */
   protected function setDefaultOptions() {
   	$this->conf = array(
-  		self::CONFIG_ACCESS_LIFETIME  => self::DEFAULT_ACCESS_TOKEN_LIFETIME,
-  		self::CONFIG_REFRESH_LIFETIME => self::DEFAULT_REFRESH_TOKEN_LIFETIME, 
-  		self::CONFIG_AUTH_LIFETIME    => self::DEFAULT_AUTH_CODE_LIFETIME,
-  		self::CONFIG_WWW_REALM        => self::DEFAULT_WWW_REALM,
-  		self::CONFIG_TOKEN_TYPE       => self::TOKEN_TYPE_BEARER,
-      self::CONFIG_SUPPORTED_SCOPES => array() // This is expected to be passed in on construction. Scopes can be an aribitrary string.  
+  		self::CONFIG_ACCESS_LIFETIME        => self::DEFAULT_ACCESS_TOKEN_LIFETIME,
+  		self::CONFIG_REFRESH_LIFETIME       => self::DEFAULT_REFRESH_TOKEN_LIFETIME, 
+  		self::CONFIG_AUTH_LIFETIME          => self::DEFAULT_AUTH_CODE_LIFETIME,
+  		self::CONFIG_WWW_REALM              => self::DEFAULT_WWW_REALM,
+  		self::CONFIG_TOKEN_TYPE             => self::TOKEN_TYPE_BEARER,
+  		self::CONFIG_ENFORCE_INPUT_REDIRECT => FALSE,
+      self::CONFIG_SUPPORTED_SCOPES       => array() // This is expected to be passed in on construction. Scopes can be an aribitrary string.  
   	);
   }
 
@@ -775,10 +777,17 @@ class OAuth2 {
       throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_INVALID_CLIENT);
     }
     
-    // Make sure a valid redirect_uri was supplied. It is required and must match the stored one.
+    // Make sure a valid redirect_uri was supplied. If specified, it must match the stored URI.
+    // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-2.1.1
     // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4.1.2.1
     // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4.2.2.1
-    if (!$input["redirect_uri"] || strcasecmp(substr($input["redirect_uri"], 0, strlen($stored['redirect_uri'])), $stored['redirect_uri']) !== 0) {
+    if (!$input["redirect_uri"] && !$stored["redirect_uri"]) {
+      throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_REDIRECT_URI_MISMATCH, 'No redirect URL was supplied or stored.');
+    }
+    if ($this->getVariable(self::CONFIG_ENFORCE_INPUT_REDIRECT) && !$input["redirect_uri"]) {
+      throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_REDIRECT_URI_MISMATCH, 'The rediect URI is mandatory and was not supplied.');
+    }
+    if ($stored["redirect_uri"] && $input["redirect_uri"] || strcasecmp(substr($input["redirect_uri"], 0, strlen($stored['redirect_uri'])), $stored['redirect_uri']) !== 0) {
       throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_REDIRECT_URI_MISMATCH, 'The rediect URI provided is missing or does not match');
     }
 
