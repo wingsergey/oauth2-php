@@ -32,5 +32,5 @@ interface IOAuth2GrantClient extends IOAuth2Storage {
 	 *
 	 * @ingroup oauth2_section_2
 	 */
-	public function checkClientCredentialsGrant($client_id, $client_secret = NULL);
+	public function checkClientCredentialsGrant($client_id, $client_secret);
 }
