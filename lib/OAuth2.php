@@ -115,12 +115,12 @@ class OAuth2 {
    * (POST & GET). This is for the "bearer" token type.
    * Other token types may use different methods and names.
    *
-   * IETF Draft section 2 specifies that it should be called "bearer_token"
+   * IETF Draft section 2 specifies that it should be called "access_token"
    *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.2
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.3
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-06#section-2.2
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-06#section-2.3
    */
-  const TOKEN_PARAM_NAME = 'bearer_token';
+  const TOKEN_PARAM_NAME = 'access_token';
   
   /**
    * When using the bearer token type, there is a specifc Authorization header
