@@ -29,14 +29,13 @@ class OAuth2ServerException extends Exception {
       $this->errorData['error_description'] = $error_description;
     }
   }
-  
+
   /**
    * @return string 
    */
   public function getDescription() {
     return isset($this->errorData['error_description']) ? $this->errorData['error_description'] : null;
   }
-  
   
   /**
    * @return string 

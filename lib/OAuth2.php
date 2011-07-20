@@ -475,19 +475,22 @@ class OAuth2 {
       }
     }
     
+    $tokenType = $this->getVariable(self::CONFIG_TOKEN_TYPE);
+    $realm = $this->getVariable(self::CONFIG_WWW_REALM);
+    
     // Check that exactly one method was used
     $methodsUsed = isset($headers) + isset($_GET[self::TOKEN_PARAM_NAME]) + isset($_POST[self::TOKEN_PARAM_NAME]);
     if ( $methodsUsed > 1 ) { 
-      $this->errorJsonResponse(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Only one method may be used to authenticate at a time (Auth header, GET or POST).');
+      throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'Only one method may be used to authenticate at a time (Auth header, GET or POST).');
     }
     elseif ($methodsUsed == 0) {
-      $this->errorJsonResponse(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'The bearer token was not found.');
+      throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'The bearer token was not found.');
     }
     
     // HEADER: Get the bearer token from the header
     if (isset($headers)) {
       if (!preg_match('/'.self::TOKEN_BEARER_HEADER_NAME.'\s(\S+)/', $headers, $matches)) {
-        $this->errorJsonResponse(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'Malformed auth header');
+        throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'Malformed auth header');
       }
       
       return $matches[1];
@@ -496,12 +499,12 @@ class OAuth2 {
     // POST: Get the token form POST
     if (isset($_POST[self::TOKEN_PARAM_NAME])) {
       if ($_SERVER['REQUEST_METHOD'] != 'POST') {
-        $this->errorJsonResponse(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'When putting the token in the body, the method must be POST.');
+        throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'When putting the token in the body, the method must be POST.');
       }
       
       // IETF specifies content-type. NB: Not all webservers populate this _SERVER variable
       if (isset($_SERVER['CONTENT_TYPE']) && $_SERVER['CONTENT_TYPE'] != 'application/x-www-form-urlencoded') {
-        $this->errorJsonResponse(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, 'The content type for POST requests must be "application/x-www-form-urlencoded"');
+        throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'The content type for POST requests must be "application/x-www-form-urlencoded"');
       }
       
       return $_POST[self::TOKEN_PARAM_NAME];
