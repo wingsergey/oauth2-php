@@ -853,7 +853,7 @@ class OAuth2 {
       $result["query"]["state"] = $state;
 
     if ($is_authorized === FALSE) {
-      throw new OAuth2RedirectException($redirect_uri, self::ERROR_USER_DENIED, NULL, $state);
+      throw new OAuth2RedirectException($redirect_uri, self::ERROR_USER_DENIED, "The user denied access to your application", $state);
     }
     else {
       if ($response_type == self::RESPONSE_TYPE_AUTH_CODE) {
