@@ -37,7 +37,7 @@ require_once('OAuth2AuthenticateException.php');
  * @author Originally written by Tim Ridgely <tim.ridgely@gmail.com>.
  * @author Updated to draft v10 by Aaron Parecki <aaron@parecki.com>.
  * @author Debug, coding style clean up and documented by Edison Wong <hswong3i@pantarei-design.com>.
- * @author Refactored (including separating from raw POST/GET) by David Rochwerger <catch.dave@gmail.com>.
+ * @author Refactored (including separating from raw POST/GET) and updated to draft v20 by David Rochwerger <catch.dave@gmail.com>.
  */
 class OAuth2 {
 
@@ -443,22 +443,22 @@ class OAuth2 {
   }
   
   /**
-   * As per the Bearer spec (draft 4, section 2) - there are three ways for a client
-   * to specify the bearer token, in order of preference: Authorization Header,
-   * POST and GET.
-   * 
-   * NB: Resource servers MUST accept tokens via the Authorization scheme
-   * (http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2).
-   * 
    * This is a convenience function that can be used to get the token, which can then
    * be passed to verifyAccessToken(). The constraints specified by the draft are
    * attempted to be adheared to in this method.
    * 
+   * As per the Bearer spec (draft 8, section 2) - there are three ways for a client
+   * to specify the bearer token, in order of preference: Authorization Header,
+   * POST and GET.
+   * 
+   * NB: Resource servers MUST accept tokens via the Authorization scheme
+   * (http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-08#section-2).
+   * 
    * @todo Should we enforce TLS/SSL in this function?
    * 
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.1
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.2
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-04#section-2.3
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-08#section-2.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-08#section-2.2
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-08#section-2.3
    * 
    * We don't want to test this functionality as it relies on superglobals and headers:
    * @codeCoverageIgnoreStart
@@ -479,7 +479,7 @@ class OAuth2 {
     $realm = $this->getVariable(self::CONFIG_WWW_REALM);
     
     // Check that exactly one method was used
-    $methodsUsed = isset($headers) + isset($_GET[self::TOKEN_PARAM_NAME]) + isset($_POST[self::TOKEN_PARAM_NAME]);
+    $methodsUsed = !empty($headers) + isset($_GET[self::TOKEN_PARAM_NAME]) + isset($_POST[self::TOKEN_PARAM_NAME]);
     if ( $methodsUsed > 1 ) { 
       throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'Only one method may be used to authenticate at a time (Auth header, GET or POST).');
     }
@@ -488,7 +488,7 @@ class OAuth2 {
     }
     
     // HEADER: Get the bearer token from the header
-    if (isset($headers)) {
+    if (!empty($headers)) {
       if (!preg_match('/'.self::TOKEN_BEARER_HEADER_NAME.'\s(\S+)/', $headers, $matches)) {
         throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'Malformed auth header');
       }
@@ -496,7 +496,7 @@ class OAuth2 {
       return $matches[1];
     }
     
-    // POST: Get the token form POST
+    // POST: Get the token from POST data
     if (isset($_POST[self::TOKEN_PARAM_NAME])) {
       if ($_SERVER['REQUEST_METHOD'] != 'POST') {
         throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'When putting the token in the body, the method must be POST.');
@@ -556,7 +556,7 @@ class OAuth2 {
    *
    * @ingroup oauth2_section_4
    */
-  public function grantAccessToken(array $inputData = NULL, array $authHeaders = NULL, $sendHeaders = TRUE) {
+  public function grantAccessToken(array $inputData = NULL, array $authHeaders = NULL) {
     $filters = array(
       "grant_type" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => self::GRANT_TYPE_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
       "scope" => array("flags" => FILTER_REQUIRE_SCALAR),
@@ -693,9 +693,7 @@ class OAuth2 {
     $token = $this->createAccessToken($client[0], $user_id, $stored['scope']);
 
     // Send response
-    if ( $sendHeaders )
-      $this->sendJsonHeaders();
-      
+    $this->sendJsonHeaders();
     echo json_encode($token);
   }
 
@@ -1047,6 +1045,10 @@ class OAuth2 {
    * @ingroup oauth2_section_5
    */
   private function sendJsonHeaders() {
+  	if (php_sapi_name() === 'cli' || headers_sent()) {
+  		return;
+  	}
+  	
     header("Content-Type: application/json");
     header("Cache-Control: no-store");
   }

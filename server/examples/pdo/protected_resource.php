@@ -11,8 +11,8 @@
 
 require "lib/OAuth2StoragePDO.php";
 
-$token = isset($_GET[OAuth2::TOKEN_PARAM_NAME]) ? $_GET[OAuth2::TOKEN_PARAM_NAME] : null;
 $oauth = new OAuth2(new OAuth2StoragePDO());
+$token = $oauth->getBearerToken();
 
 try {
   $oauth->verifyAccessToken($token);

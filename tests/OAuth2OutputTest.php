@@ -29,7 +29,7 @@ class OAuth2OutputTest extends PHPUnit_Extensions_OutputTestCase {
     // Successful token grant will return a JSON encoded token:
     $this->expectOutputRegex('/{"access_token":".*","expires_in":\d+,"token_type":"bearer"/');
     $this->fixture = new OAuth2($mockStorage);
-    $this->fixture->grantAccessToken($inputData, array(), FALSE);
+    $this->fixture->grantAccessToken($inputData, array());
   }
   
 // Utility methods
