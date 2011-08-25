@@ -4,7 +4,7 @@
  * grant type should implement this interface
  * 
  * @author Dave Rochwerger <catch.dave@gmail.com>
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4.3
+ * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.3
  */
 interface IOAuth2GrantUser extends IOAuth2Storage {
 
@@ -37,7 +37,7 @@ interface IOAuth2GrantUser extends IOAuth2Storage {
 	 * );
 	 * @endcode
 	 *
-	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.1.2
+	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.3
 	 *
 	 * @ingroup oauth2_section_4
 	 */

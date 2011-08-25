@@ -4,7 +4,7 @@
  * grant type should implement this interface
  * 
  * @author Dave Rochwerger <catch.dave@gmail.com>
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4.1
+ * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1
  */
 interface IOAuth2GrantCode extends IOAuth2Storage {
   
@@ -12,8 +12,8 @@ interface IOAuth2GrantCode extends IOAuth2Storage {
    * The Authorization Code grant type supports a response type of "code". 
    * 
    * @var string
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-2.1
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4.1.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-1.4.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.2
    */
   const RESPONSE_TYPE_CODE = OAuth2::RESPONSE_TYPE_AUTH_CODE;
   
@@ -34,7 +34,7 @@ interface IOAuth2GrantCode extends IOAuth2Storage {
 	 * - expires: Stored expiration in unix timestamp.
 	 * - scope: (optional) Stored scope values in space-separated string.
 	 *
-	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.1.1
+	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1
 	 *
 	 * @ingroup oauth2_section_4
 	 */

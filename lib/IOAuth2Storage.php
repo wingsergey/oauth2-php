@@ -18,9 +18,9 @@ interface IOAuth2Storage {
 	 * TRUE if the client credentials are valid, and MUST return FALSE if it isn't.
 	 * @endcode
 	 *
-	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-3.1
+	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-3.1
 	 *
-	 * @ingroup oauth2_section_2
+	 * @ingroup oauth2_section_3
 	 */
 	public function checkClientCredentials($client_id, $client_secret = NULL);
 	
@@ -37,7 +37,7 @@ interface IOAuth2Storage {
 	 * Client details. Only mandatory item is the "registered redirect URI", and MUST
 	 * return FALSE if the given client does not exist or is invalid.
 	 *
-	 * @ingroup oauth2_section_3
+	 * @ingroup oauth2_section_4
 	 */
 	public function getClientDetails($client_id);
 
@@ -56,7 +56,7 @@ interface IOAuth2Storage {
 	 * - expires: Stored expiration in unix timestamp.
 	 * - scope: (optional) Stored scope values in space-separated string.
 	 *
-	 * @ingroup oauth2_section_5
+	 * @ingroup oauth2_section_7
 	 */
 	public function getAccessToken($oauth_token);
 

@@ -47,8 +47,8 @@ class OAuth2ServerException extends Exception {
   /**
    * Send out error message in JSON.
    *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-5.1
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-5.2
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.2
    *
    * @ingroup oauth2_error
    */
@@ -62,8 +62,8 @@ class OAuth2ServerException extends Exception {
   /**
    * Send out HTTP headers for JSON.
    *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-5.1
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-5.2
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.2
    *
    * @ingroup oauth2_section_5
    */

@@ -4,7 +4,8 @@
  * implement this interface.
  * 
  * @author Dave Rochwerger <catch.dave@gmail.com>
- * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-16#section-4.5
+ * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-6
+ * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-1.5
  */
 interface IOAuth2RefreshTokens extends IOAuth2Storage {
   
@@ -25,9 +26,9 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage {
 	 * - expires: Stored expiration unix timestamp.
 	 * - scope: (optional) Stored scope values in space-separated string.
 	 *
-	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-4.1.4
+	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-6
 	 *
-	 * @ingroup oauth2_section_4
+	 * @ingroup oauth2_section_6
 	 */
 	public function getRefreshToken($refresh_token);
 
@@ -51,7 +52,7 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage {
 	 * @param $scope
 	 * (optional) Scopes to be stored in space-separated string.
 	 *
-	 * @ingroup oauth2_section_4
+	 * @ingroup oauth2_section_6
 	 */
 	public function setRefreshToken($refresh_token, $client_id, $user_id, $expires, $scope = NULL);
 
@@ -69,7 +70,7 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage {
 	 * @param $refresh_token
 	 * Refresh token to be expirse.
 	 *
-	 * @ingroup oauth2_section_4
+	 * @ingroup oauth2_section_6
 	 */
 	public function unsetRefreshToken($refresh_token);
 }
