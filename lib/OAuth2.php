@@ -1,6 +1,7 @@
 <?php
 require_once('OAuth2ServerException.php');
 require_once('OAuth2AuthenticateException.php');
+require_once('OAuth2RedirectException.php');
 /**
  * @mainpage
  * OAuth 2.0 server in PHP, originally written for
@@ -575,7 +576,7 @@ class OAuth2 {
 
     // Input data by default can be either POST or GET
     if (!isset($inputData)) {
-      $inputData = ($_SERVER['REQUEST_METHOD'] == 'POST') ? $_POST : $_GET;
+      	$inputData = ($_SERVER['REQUEST_METHOD'] == 'POST') ? $_POST : $_GET;
     }
     
     // Basic authorization header
@@ -592,10 +593,10 @@ class OAuth2 {
     $client = $this->getClientCredentials($inputData, $authHeaders);
 
     if ($this->storage->checkClientCredentials($client[0], $client[1]) === FALSE)
-      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT);
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, 'The client credentials are invalid');
 
     if (!$this->storage->checkRestrictedGrantType($client[0], $input["grant_type"]))
-      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_UNAUTHORIZED_CLIENT);
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_UNAUTHORIZED_CLIENT, 'The grant type is unauthorized for this client_id');
 
     // Do the granting
     switch ($input["grant_type"]) {
@@ -622,7 +623,7 @@ class OAuth2 {
           throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, "The redirect URI is missing or invalid");
 
         if ($stored["expires"] < time())
-          throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_GRANT);
+          throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_GRANT, "The authorization code has expired");
         break;
         
       case self::GRANT_TYPE_USER_CREDENTIALS:
@@ -715,15 +716,15 @@ class OAuth2 {
    * Internal function used to get the client credentials from HTTP basic
    * auth or POST data.
    * 
-   * According to the spec, the client_id provided via GET/POST must match
-   * the one sent in the Basic Authorization header.
+   * According to the spec (draft 20), the client_id can be provided in
+   * the Basic Authorization header (recommended) or via GET/POST.
    *
    * @return
    *   A list containing the client identifier and password, for example
    * @code
    * return array(
-   *   $_POST["client_id"],
-   *   $_POST["client_secret"],
+   *   CLIENT_ID,
+   *   CLIENT_SECRET
    * );
    * @endcode
    *
@@ -735,10 +736,6 @@ class OAuth2 {
     
     // Basic Authentication is used
     if (!empty($authHeaders['PHP_AUTH_USER']) ) {
-      if ($authHeaders['PHP_AUTH_USER'] != $inputData['client_id']) {
-        throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, 'The username in the authorization header must match the client_id in the body of the request');
-      }
-      
       return array($authHeaders['PHP_AUTH_USER'], $authHeaders['PHP_AUTH_PW']);
     }
     elseif (empty($inputData['client_id'])) { // No credentials were specified
@@ -781,16 +778,16 @@ class OAuth2 {
     	$inputData = $_GET;
     }
     $input = filter_var_array($inputData, $filters);
-    
+
     // Make sure a valid client id was supplied (we can not redirect because we were unable to verify the URI)
     if (!$input["client_id"]) {
-      throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_INVALID_CLIENT); // We don't have a good URI to use
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT); // We don't have a good URI to use
     }
     
     // Get client details
     $stored = $this->storage->getClientDetails($input["client_id"]);
     if ($stored === FALSE) {
-      throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_INVALID_CLIENT);
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT);
     }
     
     // Make sure a valid redirect_uri was supplied. If specified, it must match the stored URI.
@@ -798,13 +795,13 @@ class OAuth2 {
     // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1.2.1
     // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.2.2.1
     if (!$input["redirect_uri"] && !$stored["redirect_uri"]) {
-      throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_REDIRECT_URI_MISMATCH, 'No redirect URL was supplied or stored.');
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, 'No redirect URL was supplied or stored.');
     }
     if ($this->getVariable(self::CONFIG_ENFORCE_INPUT_REDIRECT) && !$input["redirect_uri"]) {
-      throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_REDIRECT_URI_MISMATCH, 'The redirect URI is mandatory and was not supplied.');
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, 'The redirect URI is mandatory and was not supplied.');
     }
-    if ($stored["redirect_uri"] && $input["redirect_uri"] || !$this->validateRedirectUri($input["redirect_uri"], $stored["redirect_uri"])) {
-      throw new OAuth2ServerException(self::HTTP_FOUND, self::ERROR_REDIRECT_URI_MISMATCH, 'The rediect URI provided is missing or does not match');
+    if ($stored["redirect_uri"] && $input["redirect_uri"] && !$this->validateRedirectUri($input["redirect_uri"], $stored["redirect_uri"])) {
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, 'The rediect URI provided is missing or does not match');
     }
     
     // Select the redirect URI
