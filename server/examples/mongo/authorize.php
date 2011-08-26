@@ -17,7 +17,11 @@ if ($_POST) {
   $oauth->finishClientAuthorization($_POST["accept"] == "Yep", $_POST);
 }
 
-$auth_params = $oauth->getAuthorizeParams();
+try {
+  $auth_params = $oauth->getAuthorizeParams();
+} catch (OAuth2ServerException $oauthError) {
+  $oauthError->sendHttpResponse();
+}
 
 ?>
 <html>
