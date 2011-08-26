@@ -181,16 +181,6 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     } catch ( OAuth2ServerException $e ) {
       $this->assertNotEquals(OAuth2::ERROR_INVALID_CLIENT, $e->getMessage());
     }
-    
-    // Confirm Auth header checks client_id in body
-    $authHeaders = array('PHP_AUTH_USER' => 'dev-abc', 'PHP_AUTH_PW' => 'pass');
-    $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'someone-else'); 
-    try {
-      $this->fixture->grantAccessToken($inputData, $authHeaders);
-      $this->fail('The expected exception OAuth2ServerException was not thrown');
-    } catch ( OAuth2ServerException $e ) {
-      $this->assertEquals(OAuth2::ERROR_INVALID_CLIENT, $e->getMessage());
-    }
   }
   
   /**
@@ -200,10 +190,13 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
   public function testGrantAccessTokenWithGrantAuthCodeMandatoryParams() {
     $mockStorage = $this->createBaseMock('IOAuth2GrantCode');
     $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'a', 'client_secret' => 'b');
+    $fakeAuthCode = array('client_id' => $inputData['client_id'], 'redirect_uri' => '/foo', 'expires' => time() + 60);
+    $fakeAccessToken = array('access_token' => 'abcde');
     
     // Ensure redirect URI and auth-code is mandatory
     try {
       $this->fixture = new OAuth2($mockStorage);
+      $this->fixture->setVariable(OAuth2::CONFIG_ENFORCE_INPUT_REDIRECT, true); // Only required when this is set
       $this->fixture->grantAccessToken($inputData + array('code' => 'foo'), array());
       $this->fail('The expected exception OAuth2ServerException was not thrown');
     } catch ( OAuth2ServerException $e ) {
@@ -216,7 +209,6 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     } catch ( OAuth2ServerException $e ) {
       $this->assertEquals(OAuth2::ERROR_INVALID_REQUEST, $e->getMessage());
     }
-    
   }
   
    /**
@@ -259,7 +251,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
       $this->fail('The expected exception OAuth2ServerException was not thrown');
     }
     catch ( OAuth2ServerException $e ) {
-      $this->assertEquals(OAuth2::ERROR_INVALID_GRANT, $e->getMessage());
+      $this->assertEquals(OAuth2::ERROR_REDIRECT_URI_MISMATCH, $e->getMessage());
     }
   }
   
