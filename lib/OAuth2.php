@@ -781,7 +781,7 @@ class OAuth2 {
 
     // Make sure a valid client id was supplied (we can not redirect because we were unable to verify the URI)
     if (!$input["client_id"]) {
-      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT); // We don't have a good URI to use
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, "No client id supplied"); // We don't have a good URI to use
     }
     
     // Get client details
