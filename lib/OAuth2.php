@@ -432,7 +432,7 @@ class OAuth2 {
 
     // Check we have a well formed token
     if (!isset($token["expires"]) || !isset($token["client_id"])) 
-      throw new OAuth2AuthenticateException(self::HTTP_UNAUTHORIZED, $tokenType, $realm, self::ERROR_INVALID_GRANT, 'Malformed token (missing expires or client_id)', $scope);
+      throw new OAuth2AuthenticateException(self::HTTP_UNAUTHORIZED, $tokenType, $realm, self::ERROR_INVALID_GRANT, 'Malformed token (missing "expires" or "client_id")', $scope);
       
     // Check token expiration (expires is a mandatory paramter)
     if (isset($token["expires"]) && time() > $token["expires"])
@@ -488,10 +488,10 @@ class OAuth2 {
       throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'Only one method may be used to authenticate at a time (Auth header, GET or POST).');
     }
     elseif ($methodsUsed == 0) {
-      throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'The bearer token was not found.');
+      throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'The access token was not found.');
     }
     
-    // HEADER: Get the bearer token from the header
+    // HEADER: Get the access token from the header
     if (!empty($headers)) {
       if (!preg_match('/'.self::TOKEN_BEARER_HEADER_NAME.'\s(\S+)/', $headers, $matches)) {
         throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'Malformed auth header');
