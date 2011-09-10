@@ -254,7 +254,7 @@ class OAuth2StoragePDO implements IOAuth2GrantCode, IOAuth2RefreshTokens {
   }
   
   /**
-   * Retreives an access or refresh token.
+   * Retrieves an access or refresh token.
    *  
    * @param string $token
    * @param bool $refresh

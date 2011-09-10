@@ -556,7 +556,7 @@ class OAuth2 {
    * This is *not* currently enforced in this library.
    * 
    * @param $inputData - The draft specifies that the parameters should be
-   * retreived from POST, but you can override to whatever method you like.
+   * retrieved from POST, but you can override to whatever method you like.
    * @throws OAuth2ServerException
    * 
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4
@@ -755,7 +755,7 @@ class OAuth2 {
    * by setting CONFIG_ENFORCE_INPUT_REDIRECT to true.
    *
    * @param $inputData - The draft specifies that the parameters should be
-   * retreived from GET, but you can override to whatever method you like.
+   * retrieved from GET, but you can override to whatever method you like.
    * @return
    *   The authorization parameters so the authorization server can prompt
    *   the user for approval if valid.
@@ -821,7 +821,7 @@ class OAuth2 {
     if ($input["scope"] && !$this->checkScope($input["scope"], $this->getVariable(self::CONFIG_SUPPORTED_SCOPES)))
       throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_INVALID_SCOPE, NULL, $input["state"]);
 
-    // Return retreived client details together with input
+    // Return retrieved client details together with input
     return ($input + $stored);
   }
 
