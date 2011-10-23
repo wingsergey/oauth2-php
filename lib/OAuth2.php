@@ -786,7 +786,7 @@ class OAuth2 {
     
     // Get client details
     $stored = $this->storage->getClientDetails($input["client_id"]);
-    if ($stored === FALSE) {
+    if (empty($stored) || !is_array($stored)) {
       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT);
     }
     
