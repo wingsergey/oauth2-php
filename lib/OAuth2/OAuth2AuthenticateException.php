@@ -1,4 +1,7 @@
 <?php
+
+namespace OAuth2;
+
 /**
  * Send an error header with the given realm and an error, if provided.
  * Suitable for the bearer token type.

@@ -1,5 +1,8 @@
 <?php
 
+namespace OAuth2;
+
+
 /**
  * OAuth2.0 draft v10 exception handling.
  *

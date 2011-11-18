@@ -1,4 +1,7 @@
 <?php
+
+namespace OAuth2;
+
 /**
  * Storage engines that support the "Implicit"
  * grant type should implement this interface

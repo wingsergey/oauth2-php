@@ -1,4 +1,7 @@
 <?php
+
+namespace OAuth2;
+
 /**
  * All storage engines need to implement this interface in order to use OAuth2 server
  * 

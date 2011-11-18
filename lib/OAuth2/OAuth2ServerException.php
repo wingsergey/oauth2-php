@@ -1,4 +1,7 @@
 <?php
+
+namespace OAuth2;
+
 /**
  * OAuth2 errors that require termination of OAuth2 due to
  * an error.

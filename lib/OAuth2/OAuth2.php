@@ -1,4 +1,7 @@
 <?php
+
+namespace OAuth2;
+
 require_once('OAuth2ServerException.php');
 require_once('OAuth2AuthenticateException.php');
 require_once('OAuth2RedirectException.php');

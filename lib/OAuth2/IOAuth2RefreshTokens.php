@@ -1,4 +1,7 @@
 <?php
+
+namespace OAuth2;
+
 /**
  * Storage engines that want to support refresh tokens should
  * implement this interface.

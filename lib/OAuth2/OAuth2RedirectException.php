@@ -1,4 +1,7 @@
 <?php
+
+namespace OAuth2;
+
 /**
  * Redirect the end-user's user agent with error message.
  *

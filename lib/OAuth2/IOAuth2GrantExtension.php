@@ -1,4 +1,7 @@
 <?php
+
+namespace OAuth2;
+
 /**
  * Storage engines that support the "Extensible"
  * grant types should implement this interface
