@@ -2,9 +2,6 @@
 
 namespace OAuth2;
 
-require_once('OAuth2ServerException.php');
-require_once('OAuth2AuthenticateException.php');
-require_once('OAuth2RedirectException.php');
 /**
  * @mainpage
  * OAuth 2.0 server in PHP, originally written for
