@@ -1,8 +1,7 @@
 <?php
 
-require_once(__DIR__ . '/../lib/OAuth2.php');
-require_once(__DIR__ . '/../lib/IOAuth2Storage.php');
-require_once(__DIR__ . '/../lib/IOAuth2GrantCode.php');
+use OAuth2\OAuth2;
+use OAuth2\OAuth2ServerException;
 
 /**
  * OAuth2 test case.
@@ -24,11 +23,11 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    * Tests OAuth2->verifyAccessToken() with a missing token
    */
   public function testVerifyAccessTokenWithNoParam() {
-    $mockStorage = $this->getMock('IOAuth2Storage');
+    $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
     $this->fixture = new OAuth2($mockStorage);
     
     $scope = null;
-    $this->setExpectedException('OAuth2AuthenticateException');
+    $this->setExpectedException('OAuth2\OAuth2AuthenticateException');
     $this->fixture->verifyAccessToken('', $scope);
   }
   
@@ -38,7 +37,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
   public function testVerifyAccessTokenInvalidToken() {
     
     // Set up the mock storage to say this token does not exist
-    $mockStorage = $this->getMock('IOAuth2Storage');
+    $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
     $mockStorage->expects($this->once())
       ->method('getAccessToken')
       ->will($this->returnValue(false));
@@ -46,7 +45,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     $this->fixture = new OAuth2($mockStorage);
     
     $scope = null;
-    $this->setExpectedException('OAuth2AuthenticateException');
+    $this->setExpectedException('OAuth2\OAuth2AuthenticateException');
     $this->fixture->verifyAccessToken($this->tokenId, $scope);
   }
   
@@ -58,7 +57,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
   public function testVerifyAccessTokenMalformedToken($token) {
     
     // Set up the mock storage to say this token does not exist
-    $mockStorage = $this->getMock('IOAuth2Storage');
+    $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
     $mockStorage->expects($this->once())
       ->method('getAccessToken')
       ->will($this->returnValue($token));
@@ -66,7 +65,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     $this->fixture = new OAuth2($mockStorage);
     
     $scope = null;
-    $this->setExpectedException('OAuth2AuthenticateException');
+    $this->setExpectedException('OAuth2\OAuth2AuthenticateException');
     $this->fixture->verifyAccessToken($this->tokenId, $scope);
   }
   
@@ -78,7 +77,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
   public function testVerifyAccessTokenCheckExpiry($token, $expectedToPass) {
     
     // Set up the mock storage to say this token does not exist
-    $mockStorage = $this->getMock('IOAuth2Storage');
+    $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
     $mockStorage->expects($this->once())
       ->method('getAccessToken')
       ->will($this->returnValue($token));
@@ -95,7 +94,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
       $this->assertInternalType('array', $actual);
     }
     else {
-      $this->setExpectedException('OAuth2AuthenticateException');
+      $this->setExpectedException('OAuth2\OAuth2AuthenticateException');
       $this->fixture->verifyAccessToken($this->tokenId, $scope);
     }
   }
@@ -108,7 +107,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
   public function testVerifyAccessTokenCheckScope($scopeRequired, $token, $expectedToPass) {
     
     // Set up the mock storage to say this token does not exist
-    $mockStorage = $this->getMock('IOAuth2Storage');
+    $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
     $mockStorage->expects($this->once())
       ->method('getAccessToken')
       ->will($this->returnValue($token));
@@ -122,7 +121,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
       $this->assertInternalType('array', $actual);
     }
     else {
-      $this->setExpectedException('OAuth2AuthenticateException');
+      $this->setExpectedException('OAuth2\OAuth2AuthenticateException');
       $this->fixture->verifyAccessToken($this->tokenId, $scopeRequired);
     }
   }
@@ -133,10 +132,10 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    * @dataProvider generateEmptyDataForGrant
    */
   public function testGrantAccessTokenMissingData($inputData, $authHeaders) {
-    $mockStorage = $this->getMock('IOAuth2Storage');
+    $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
     $this->fixture = new OAuth2($mockStorage);
     
-    $this->setExpectedException('OAuth2ServerException');
+    $this->setExpectedException('OAuth2\OAuth2ServerException');
     $this->fixture->grantAccessToken($inputData, $authHeaders);
   }
   
@@ -146,7 +145,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    * Tests the different ways client credentials can be provided.
    */
   public function testGrantAccessTokenCheckClientCredentials() {
-    $mockStorage = $this->getMock('IOAuth2Storage');
+    $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
     $mockStorage->expects($this->any())
       ->method('checkClientCredentials')
       ->will($this->returnValue(TRUE)); // Always return true for any combination of user/pass
@@ -189,7 +188,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    * 
    */
   public function testGrantAccessTokenWithGrantAuthCodeMandatoryParams() {
-    $mockStorage = $this->createBaseMock('IOAuth2GrantCode');
+    $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
     $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'a', 'client_secret' => 'b');
     $fakeAuthCode = array('client_id' => $inputData['client_id'], 'redirect_uri' => '/foo', 'expires' => time() + 60);
     $fakeAccessToken = array('access_token' => 'abcde');
@@ -217,7 +216,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    * 
    */
   public function testGrantAccessTokenWithGrantAuthCodeNoToken() {
-    $mockStorage = $this->createBaseMock('IOAuth2GrantCode');
+    $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
     $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'a', 'client_secret' => 'b', 'redirect_uri' => 'foo', 'code'=> 'foo');
     
     // Ensure missing auth code raises an error
@@ -239,7 +238,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     $inputData = array('redirect_uri' => 'http://www.crossdomain.com/my/subdir', 'grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'my_little_app', 'client_secret' => 'b', 'code'=> 'foo');
     $storedToken = array('redirect_uri' => 'http://www.example.com', 'client_id' => 'my_little_app', 'expires' => time() + 60);
     
-    $mockStorage = $this->createBaseMock('IOAuth2GrantCode');
+    $mockStorage = $this->createBaseMock('Oauth2\IOAuth2GrantCode');
     $mockStorage->expects($this->any())
       ->method('getAuthCode')
       ->will($this->returnValue($storedToken));
@@ -264,7 +263,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     $inputData = array('client_id' => 'another_app', 'grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'redirect_uri' => 'http://www.example.com/my/subdir', 'client_secret' => 'b', 'code'=> 'foo');
     $storedToken = array('client_id' => 'my_little_app', 'redirect_uri' => 'http://www.example.com', 'expires' => time() + 60);
     
-    $mockStorage = $this->createBaseMock('IOAuth2GrantCode');
+    $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
     $mockStorage->expects($this->any())
       ->method('getAuthCode')
       ->will($this->returnValue($storedToken));

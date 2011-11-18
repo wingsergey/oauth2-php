@@ -1,7 +1,6 @@
 <?php
-require_once(__DIR__ . '/../lib/OAuth2.php');
-require_once(__DIR__ . '/../lib/IOAuth2Storage.php');
-require_once(__DIR__ . '/../lib/IOAuth2GrantCode.php');
+
+use OAuth2\OAuth2;
 
 /**
  * OAuth2 test cases that invovle capturing output.
@@ -21,7 +20,7 @@ class OAuth2OutputTest extends PHPUnit_Extensions_OutputTestCase {
     $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'redirect_uri' => 'http://www.example.com/my/subdir', 'client_id' => 'my_little_app', 'client_secret' => 'b', 'code'=> 'foo');
     $storedToken = array('redirect_uri' => 'http://www.example.com', 'client_id' => 'my_little_app', 'expires' => time() + 60);
     
-    $mockStorage = $this->createBaseMock('IOAuth2GrantCode');
+    $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
     $mockStorage->expects($this->any())
       ->method('getAuthCode')
       ->will($this->returnValue($storedToken));
@@ -39,7 +38,7 @@ class OAuth2OutputTest extends PHPUnit_Extensions_OutputTestCase {
     $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'my_little_app', 'client_secret' => 'b', 'code'=> 'foo');
     $storedToken = array('redirect_uri' => 'http://www.example.com', 'client_id' => 'my_little_app', 'expires' => time() + 60);
     
-    $mockStorage = $this->createBaseMock('IOAuth2GrantCode');
+    $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
     $mockStorage->expects($this->any())
       ->method('getAuthCode')
       ->will($this->returnValue($storedToken));
