@@ -8,10 +8,13 @@
  * specially crafted frame-wrapper).
  */
 
+use OAuth2\OAuth2;
+use OAuth2\OAuth2ServerException;
+
+require 'lib/bootstrap.php';
+
 // Clickjacking prevention (supported by IE8+, FF3.6.9+, Opera10.5+, Safari4+, Chrome 4.1.249.1042+)
 header('X-Frame-Options: DENY');
-
-require "lib/OAuth2StoragePDO.php";
 
 /*
  * You would need to authenticate the user before authorization.
@@ -25,11 +28,17 @@ if (!isLoggedIn()) {
 }
  */
 
-$oauth = new OAuth2(new OAuth2StoragePDO());
+$oauth = new OAuth2(new OAuth2StoragePDO(newPDO()));
 
 if ($_POST) {
-  $userId = $_SESSION['user_id']; // Use whatever method you have for identifying users.
-  $oauth->finishClientAuthorization($_POST["accept"] == "Yep", $userId, $_POST);
+  $userId = 123; // Use whatever method you have for identifying users.
+  try { 
+    $response = $oauth->finishClientAuthorization($_POST["accept"] == "Yep", $userId);
+    $response->send();
+  } catch(OAuth2ServerException $e) {
+    $e->getHttpResponse()->send();
+  }
+  exit;
 }
 
 try {
@@ -50,7 +59,7 @@ try {
   </script>
   </head>
   <body>
-    <form method="post" action="authorize.php">
+    <form method="post" action="">
       <?php foreach ($auth_params as $key => $value) : ?>
       	<input type="hidden" name="<?php htmlspecialchars($key, ENT_QUOTES); ?>" value="<?php echo htmlspecialchars($value, ENT_QUOTES); ?>" />
       <?php endforeach; ?>

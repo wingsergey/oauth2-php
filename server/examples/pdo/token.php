@@ -9,12 +9,16 @@
  * In reality, you'd probably use a nifty framework to handle most of the crud for you.
  */
 
-require "lib/OAuth2StoragePDO.php";
+use OAuth2\OAuth2;
+use OAuth2\OAuth2ServerException;
 
-$oauth = new OAuth2(new OAuth2StoragePDO());
+require 'lib/bootstrap.php';
+
+$oauth = new OAuth2(new OAuth2StoragePDO(newPDO()));
 try {
-  $oauth->grantAccessToken();
+  $response = $oauth->grantAccessToken();
+  $response->send();
 }
 catch (OAuth2ServerException $oauthError) {
-  $oauthError->sendHttpResponse();
+  $oauthError->getHttpResponse()->send();
 }

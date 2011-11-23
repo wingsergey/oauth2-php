@@ -7,10 +7,10 @@
  * Obviously not production-ready code, just simple and to the point.
  */
 
-include "lib/PDOOAuth2.php";
+require 'lib/bootstrap.php';
 
 if ($_POST && isset($_POST["client_id"]) && isset($_POST["client_secret"]) && isset($_POST["redirect_uri"])) {
-  $oauth = new OAuth2StoragePDO();
+  $oauth = new OAuth2StoragePDO(newPDO());
   $oauth->addClient($_POST["client_id"], $_POST["client_secret"], $_POST["redirect_uri"]);
 }
 
