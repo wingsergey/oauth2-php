@@ -822,9 +822,14 @@ class OAuth2 {
       throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_INVALID_REQUEST, 'Invalid or missing response type.', $input["state"]);
 
     // Check requested auth response type against interfaces of storage engine
-    $reflect = new ReflectionClass($this->storage);
-    if ( !$reflect->hasConstant('RESPONSE_TYPE_'.strtoupper($input['response_type'])) ) {
-      throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_UNSUPPORTED_RESPONSE_TYPE, NULL, $input["state"]);
+    if ($input['response_type'] == self::RESPONSE_TYPE_AUTH_CODE) {
+        if (!$this->storage instanceof IOAuth2GrantCode) {
+            throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_UNSUPPORTED_RESPONSE_TYPE, NULL, $input["state"]);
+        }
+    } else if ($input['response_type'] == self::RESPONSE_TYPE_ACCESS_TOKEN) {
+        if (!$this->storage instanceof IOAuth2GrantImplicit) {
+            throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_UNSUPPORTED_RESPONSE_TYPE, NULL, $input["state"]);
+        }
     }
 
     // Validate that the requested scope is supported
