@@ -6,7 +6,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * OAuth2 test cases that invovle capturing output.
  */
-class OAuth2OutputTest extends PHPUnit_Extensions_OutputTestCase {
+class OAuth2OutputTest extends PHPUnit_Framework_TestCase {
   
   /**
    * @var OAuth2
@@ -28,10 +28,11 @@ class OAuth2OutputTest extends PHPUnit_Extensions_OutputTestCase {
       ->method('getAuthCode')
       ->will($this->returnValue($storedToken));
       
-    // Successful token grant will return a JSON encoded token:
-    $this->expectOutputRegex('/{"access_token":".*","expires_in":\d+,"token_type":"bearer"/');
     $this->fixture = new OAuth2($mockStorage);
-    $this->fixture->grantAccessToken($request);
+    $response = $this->fixture->grantAccessToken($request);
+
+    // Successful token grant will return a JSON encoded token:
+    $this->assertRegexp('/{"access_token":".*","expires_in":\d+,"token_type":"bearer"/', $response->getContent());
   }
   
   /**
@@ -48,11 +49,12 @@ class OAuth2OutputTest extends PHPUnit_Extensions_OutputTestCase {
       ->method('getAuthCode')
       ->will($this->returnValue($storedToken));
       
-    // Successful token grant will return a JSON encoded token:
-    $this->expectOutputRegex('/{"access_token":".*","expires_in":\d+,"token_type":"bearer"/');
     $this->fixture = new OAuth2($mockStorage);
     $this->fixture->setVariable(OAuth2::CONFIG_ENFORCE_INPUT_REDIRECT, false); 
-    $this->fixture->grantAccessToken($request);
+    $response = $this->fixture->grantAccessToken($request);
+
+    // Successful token grant will return a JSON encoded token:
+    $this->assertRegexp('/{"access_token":".*","expires_in":\d+,"token_type":"bearer"/', $response->getContent());
   }
   
 // Utility methods

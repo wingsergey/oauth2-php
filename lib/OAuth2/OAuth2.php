@@ -3,6 +3,7 @@
 namespace OAuth2;
 
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @mainpage
@@ -716,9 +717,7 @@ class OAuth2 {
     $user_id = isset($stored['user_id']) ? $stored['user_id'] : null;
     $token = $this->createAccessToken($client[0], $user_id, $stored['scope']);
 
-    // Send response
-    $this->sendJsonHeaders();
-    echo json_encode($token);
+    return new Response(json_encode($token), 200, $this->getJsonHeaders());
   }
 
   /**
@@ -891,13 +890,13 @@ class OAuth2 {
       }
     }
 
-    $this->doRedirectUriCallback($redirect_uri, $result);
+    return $this->createRedirectUriCallbackResponse($redirect_uri, $result);
   }
 
   // Other/utility functions.
 
   /**
-   * Redirect the user agent.
+   * Returns redirect response
    *
    * Handle both redirect for success or error response.
    *
@@ -909,10 +908,10 @@ class OAuth2 {
    *
    * @ingroup oauth2_section_4
    */
-  private function doRedirectUriCallback($redirect_uri, $params) {
-    header("HTTP/1.1 ". self::HTTP_FOUND);
-    header("Location: " . $this->buildUri($redirect_uri, $params));
-    exit;
+  private function createRedirectUriCallbackResponse($redirect_uri, $params) {
+    return new Response('', 302, array(
+      'Location' => $this->buildUri($redirect_uri, $params),
+    ));
   }
 
   /**
@@ -1064,20 +1063,19 @@ class OAuth2 {
   }
 
   /**
-   * Send out HTTP headers for JSON.
+   * Returns HTTP headers for JSON.
    *
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.1
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.2
    *
    * @ingroup oauth2_section_5
    */
-  private function sendJsonHeaders() {
-  	if (php_sapi_name() === 'cli' || headers_sent()) {
-  		return;
-  	}
-  	
-    header("Content-Type: application/json");
-    header("Cache-Control: no-store");
+  private function getJsonHeaders() {
+    return array(
+      'Content-Type' => 'application/json;charset=UTF-8',
+      'Cache-Control' => 'no-store',
+      'Pragma' => 'no-cache',
+    );
   }
   
   /**

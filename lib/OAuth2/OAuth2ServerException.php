@@ -3,6 +3,7 @@
 namespace OAuth2;
 
 use Exception;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * OAuth2 errors that require termination of OAuth2 due to
@@ -48,39 +49,50 @@ class OAuth2ServerException extends Exception {
   public function getHttpCode() {
     return $this->httpCode;
   }
-  
+
   /**
-   * Send out error message in JSON.
+   * Get HTTP Error Response
    *
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.1
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.2
    *
    * @ingroup oauth2_error
    */
-  public function sendHttpResponse() {
-    header("HTTP/1.1 " . $this->httpCode);
-    $this->sendHeaders();
-    echo (string) $this;
-    exit;
+  public function getHttpResponse() {
+    return new Response(
+      $this->getResponseBody(),
+      $this->getHttpCode(),
+      $this->getResponseHeaders()
+    );
   }
-  
+
   /**
-   * Send out HTTP headers for JSON.
+   * Get HTTP Error Response headers
    *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.1
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.2
    *
-   * @ingroup oauth2_section_5
+   * @ingroup oauth2_error
    */
-  protected function sendHeaders() {
-    header("Content-Type: application/json");
-    header("Cache-Control: no-store");
+  public function getResponseHeaders() {
+    return array(
+      'Content-Type' => 'application/json',
+      'Cache-Control' => 'no-store',
+    );
+  }
+
+  public function getResponseBody() {
+    return json_encode($this->errorData);
+  }
+  
+  public function sendHttpResponse() {
+    $this->getHttpResponse()->send();
+    exit;
   }
   
   /**
    * @see Exception::__toString()
    */
   public function __toString() {
-    return json_encode($this->errorData);
+    return $this->getResponseBody();
   }
 }
