@@ -2,6 +2,7 @@
 
 use OAuth2\OAuth2;
 use OAuth2\OAuth2ServerException;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * OAuth2 test case.
@@ -131,12 +132,12 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    * 
    * @dataProvider generateEmptyDataForGrant
    */
-  public function testGrantAccessTokenMissingData($inputData, $authHeaders) {
+  public function testGrantAccessTokenMissingData($request) {
     $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
     $this->fixture = new OAuth2($mockStorage);
     
     $this->setExpectedException('OAuth2\OAuth2ServerException');
-    $this->fixture->grantAccessToken($inputData, $authHeaders);
+    $this->fixture->grantAccessToken($request);
   }
   
   /**
@@ -152,11 +153,11 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     $this->fixture = new OAuth2($mockStorage);
     
     $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE);
-    $authHeaders = array();
+    $request = $this->createRequest($inputData);
     
     // First, confirm that an non-client related error is thrown:
     try {
-      $this->fixture->grantAccessToken($inputData, $authHeaders);
+      $this->fixture->grantAccessToken($request);
       $this->fail('The expected exception OAuth2ServerException was not thrown');
     } catch ( OAuth2ServerException $e ) {
       $this->assertEquals(OAuth2::ERROR_INVALID_CLIENT, $e->getMessage());
@@ -165,8 +166,9 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     // Confirm Auth header
     $authHeaders = array('PHP_AUTH_USER' => 'dev-abc', 'PHP_AUTH_PW' => 'pass');
     $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'dev-abc'); // When using auth, client_id must match
+    $request = $this->createRequest($inputData, $authHeaders);
     try {
-      $this->fixture->grantAccessToken($inputData, $authHeaders);
+      $this->fixture->grantAccessToken($request);
       $this->fail('The expected exception OAuth2ServerException was not thrown');
     } catch ( OAuth2ServerException $e ) {
       $this->assertNotEquals(OAuth2::ERROR_INVALID_CLIENT, $e->getMessage());
@@ -175,8 +177,9 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     // Confirm GET/POST
     $authHeaders = array();
     $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'dev-abc', 'client_secret' => 'foo'); // When using auth, client_id must match
+    $request = $this->createRequest($inputData, $authHeaders);
     try {
-      $this->fixture->grantAccessToken($inputData, $authHeaders);
+      $this->fixture->grantAccessToken($request);
       $this->fail('The expected exception OAuth2ServerException was not thrown');
     } catch ( OAuth2ServerException $e ) {
       $this->assertNotEquals(OAuth2::ERROR_INVALID_CLIENT, $e->getMessage());
@@ -197,14 +200,16 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     try {
       $this->fixture = new OAuth2($mockStorage);
       $this->fixture->setVariable(OAuth2::CONFIG_ENFORCE_INPUT_REDIRECT, true); // Only required when this is set
-      $this->fixture->grantAccessToken($inputData + array('code' => 'foo'), array());
+      $request = $this->createRequest($inputData + array('code' => 'foo'));
+      $this->fixture->grantAccessToken($request);
       $this->fail('The expected exception OAuth2ServerException was not thrown');
     } catch ( OAuth2ServerException $e ) {
       $this->assertEquals(OAuth2::ERROR_INVALID_REQUEST, $e->getMessage());
     }
     try {
       $this->fixture = new OAuth2($mockStorage);
-      $this->fixture->grantAccessToken($inputData + array('redirect_uri' => 'foo'), array());
+      $request = $this->createRequest($inputData + array('redirect_uri' => 'foo'));
+      $this->fixture->grantAccessToken($request);
       $this->fail('The expected exception OAuth2ServerException was not thrown');
     } catch ( OAuth2ServerException $e ) {
       $this->assertEquals(OAuth2::ERROR_INVALID_REQUEST, $e->getMessage());
@@ -222,7 +227,8 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     // Ensure missing auth code raises an error
     try {
       $this->fixture = new OAuth2($mockStorage);
-      $this->fixture->grantAccessToken($inputData + array(), array());
+      $request = $this->createRequest($inputData);
+      $this->fixture->grantAccessToken($request);
       $this->fail('The expected exception OAuth2ServerException was not thrown');
     }
     catch ( OAuth2ServerException $e ) {
@@ -246,7 +252,8 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     // Ensure that the redirect_uri is checked
     try {
       $this->fixture = new OAuth2($mockStorage);
-      $this->fixture->grantAccessToken($inputData, array());
+      $request = $this->createRequest($inputData);
+      $this->fixture->grantAccessToken($request);
       
       $this->fail('The expected exception OAuth2ServerException was not thrown');
     }
@@ -271,7 +278,8 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     // Ensure the client ID is checked
     try {
       $this->fixture = new OAuth2($mockStorage);
-      $this->fixture->grantAccessToken($inputData, array());
+      $request = $this->createRequest($inputData);
+      $this->fixture->grantAccessToken($request);
       
       $this->fail('The expected exception OAuth2ServerException was not thrown');
     }
@@ -439,15 +447,27 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
   public function generateEmptyDataForGrant() {
     return array(
       array(
-        array(), array()
+        $this->createRequest(array(), array())
       ),
       array(
-        array(), array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE) // grant_type in auth headers should be ignored
+        $this->createRequest(array(), array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE)) // grant_type in auth headers should be ignored
       ),
       array(
-        array('not_grant_type' => 5), array()
+        $this->createRequest(array('not_grant_type' => 5), array())
       ),
     );
+  }
+
+  public function createRequest(array $query = array(), array $headers = array()) {
+    $request = new Request(
+      $query      // _GET
+      , array()   // _REQUEST
+      , array()   // attributes
+      , array()   // _COOKIES
+      , array()   // _FILES
+      , $headers  // _SERVER
+    );
+    return $request;
   }
 }
 

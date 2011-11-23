@@ -2,6 +2,8 @@
 
 namespace OAuth2;
 
+use Symfony\Component\HttpFoundation\Request;
+
 /**
  * @mainpage
  * OAuth 2.0 server in PHP, originally written for
@@ -467,23 +469,22 @@ class OAuth2 {
    * We don't want to test this functionality as it relies on superglobals and headers:
    * @codeCoverageIgnoreStart
    */
-  public function getBearerToken() {
-    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-      $headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
-    }
-    elseif (function_exists('apache_request_headers')) {
-      $requestHeaders = apache_request_headers();
+  public function getBearerToken(Request $request = NULL) {
 
-      if (isset($requestHeaders['Authorization'])) {
-        $headers = trim($requestHeaders['Authorization']);
-      }
+    if ($request === NULL) {
+      $request = Request::createFromGlobals();
     }
     
+    $headers = $request->headers->get('AUTHORIZATION');
+
     $tokenType = $this->getVariable(self::CONFIG_TOKEN_TYPE);
     $realm = $this->getVariable(self::CONFIG_WWW_REALM);
     
     // Check that exactly one method was used
-    $methodsUsed = !empty($headers) + isset($_GET[self::TOKEN_PARAM_NAME]) + isset($_POST[self::TOKEN_PARAM_NAME]);
+    $methodsUsed = 0;
+    $methodsUsed += !empty($headers);
+    $methodsUsed += $request->query->get(self::TOKEN_PARAM_NAME) !== NULL;
+    $methodsUsed += $request->request->get(self::TOKEN_PARAM_NAME) !== NULL;
     if ( $methodsUsed > 1 ) { 
       throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'Only one method may be used to authenticate at a time (Auth header, GET or POST).');
     }
@@ -501,21 +502,23 @@ class OAuth2 {
     }
     
     // POST: Get the token from POST data
-    if (isset($_POST[self::TOKEN_PARAM_NAME])) {
-      if ($_SERVER['REQUEST_METHOD'] != 'POST') {
+    if ($request->request->get(self::TOKEN_PARAM_NAME) !== NULL) {
+      if ($request->getMethod() !== 'POST') {
         throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'When putting the token in the body, the method must be POST.');
       }
       
       // IETF specifies content-type. NB: Not all webservers populate this _SERVER variable
-      if (isset($_SERVER['CONTENT_TYPE']) && $_SERVER['CONTENT_TYPE'] != 'application/x-www-form-urlencoded') {
-        throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'The content type for POST requests must be "application/x-www-form-urlencoded"');
+      if ($contentType = $request->getContentType()) {
+        if ($contentType != 'application/x-www-form-urlencoded') {
+          throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'The content type for POST requests must be "application/x-www-form-urlencoded"');
+        }
       }
       
-      return $_POST[self::TOKEN_PARAM_NAME];
+      return $request->request->get(self::TOKEN_PARAM_NAME);
     }
    
     // GET method
-    return $_GET[self::TOKEN_PARAM_NAME];
+    return $request->query->get(self::TOKEN_PARAM_NAME);
   }
   /** @codeCoverageIgnoreEnd */
 
@@ -563,7 +566,7 @@ class OAuth2 {
    *
    * @ingroup oauth2_section_4
    */
-  public function grantAccessToken(array $inputData = NULL, array $authHeaders = NULL) {
+  public function grantAccessToken(Request $request = NULL) {
     $filters = array(
       "grant_type" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => self::GRANT_TYPE_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
       "scope" => array("flags" => FILTER_REQUIRE_SCALAR),
@@ -574,13 +577,19 @@ class OAuth2 {
       "refresh_token" => array("flags" => FILTER_REQUIRE_SCALAR),
     );
 
+    if ($request === NULL) {
+      $request = Request::createFromGlobals();
+    }
+
     // Input data by default can be either POST or GET
-    if (!isset($inputData)) {
-      	$inputData = ($_SERVER['REQUEST_METHOD'] == 'POST') ? $_POST : $_GET;
+    if ($request->getMethod() === 'POST') {
+      $inputData = $request->request->all();
+    } else {
+      $inputData = $request->query->all();
     }
     
     // Basic authorization header
-    $authHeaders = isset($authHeaders) ? $authHeaders : $this->getAuthorizationHeader();
+    $authHeaders = $this->getAuthorizationHeader($request);
     
     // Filter input data
     $input = filter_var_array($inputData, $filters);
@@ -765,7 +774,7 @@ class OAuth2 {
    * 
    * @ingroup oauth2_section_3
    */
-  public function getAuthorizeParams(array $inputData = NULL) {
+  public function getAuthorizeParams(Request $request = NULL) {
     $filters = array(
       "client_id" => array("filter" => FILTER_VALIDATE_REGEXP, "options" => array("regexp" => self::CLIENT_ID_REGEXP), "flags" => FILTER_REQUIRE_SCALAR),
       "response_type" => array("flags" => FILTER_REQUIRE_SCALAR),
@@ -774,9 +783,11 @@ class OAuth2 {
       "scope" => array("flags" => FILTER_REQUIRE_SCALAR),
     );
 
-    if (!isset($inputData)) {
-    	$inputData = $_GET;
+    if ($request === NULL) {
+      $request = Request::createFromGlobals();
     }
+
+    $inputData = $request->query->all();
     $input = filter_var_array($inputData, $filters);
 
     // Make sure a valid client id was supplied (we can not redirect because we were unable to verify the URI)
@@ -853,11 +864,11 @@ class OAuth2 {
    *
    * @ingroup oauth2_section_4
    */
-  public function finishClientAuthorization($is_authorized, $user_id = NULL, $params = array()) {
+  public function finishClientAuthorization($is_authorized, $user_id = NULL, Request $request = NULL) {
     
     // We repeat this, because we need to re-validate. In theory, this could be POSTed
     // by a 3rd-party (because we are not internally enforcing NONCEs, etc)
-    $params = $this->getAuthorizeParams($params);
+    $params = $this->getAuthorizeParams($request);
     
     $params += array(
       'scope' => NULL,
@@ -1045,10 +1056,10 @@ class OAuth2 {
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-2.4.1
    * @ingroup oauth2_section_2
    */
-  protected function getAuthorizationHeader() {
+  protected function getAuthorizationHeader(Request $request) {
     return array(
-      'PHP_AUTH_USER' => $_SERVER['PHP_AUTH_USER'],
-      'PHP_AUTH_PW'   => $_SERVER['PHP_AUTH_PW']    
+      'PHP_AUTH_USER' => $request->getUser(),
+      'PHP_AUTH_PW'   => $request->getPassword(),
     );
   }
 
