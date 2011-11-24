@@ -823,7 +823,7 @@ class OAuth2 {
     
     // Get client details
     $stored = $this->storage->getClient($input["client_id"]);
-    if ($stored === NULL) {
+    if ( ! $stored) {
       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT);
     }
     
@@ -897,14 +897,13 @@ class OAuth2 {
    *
    * @ingroup oauth2_section_4
    */
-  public function finishClientAuthorization($is_authorized, $data = NULL, Request $request = NULL) {
+  public function finishClientAuthorization($is_authorized, $data = NULL, Request $request = NULL, $scope = NULL) {
     
-    // We repeat this, because we need to re-validate. In theory, this could be POSTed
-    // by a 3rd-party (because we are not internally enforcing NONCEs, etc)
+    // In theory, this could be POSTed by a 3rd-party (because we are not
+    // internally enforcing NONCEs, etc)
     $params = $this->getAuthorizeParams($request);
-    
+
     $params += array(
-      'scope' => NULL,
       'state' => NULL,
     );
 
