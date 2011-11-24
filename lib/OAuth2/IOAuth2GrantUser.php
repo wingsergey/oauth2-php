@@ -21,8 +21,8 @@ interface IOAuth2GrantUser extends IOAuth2Storage {
 	 *
 	 * Required for OAuth2::GRANT_TYPE_USER_CREDENTIALS.
 	 *
-	 * @param $client_id
-	 * Client identifier to be check with.
+	 * @param IOAuth2Client $client
+	 * Client to be check with.
 	 * @param $username
 	 * Username to be check with.
 	 * @param $password
@@ -44,5 +44,5 @@ interface IOAuth2GrantUser extends IOAuth2Storage {
 	 *
 	 * @ingroup oauth2_section_4
 	 */
-	public function checkUserCredentials($client_id, $username, $password);
+	public function checkUserCredentials(IOAuth2Client $client, $username, $password);
 }

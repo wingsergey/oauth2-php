@@ -2,6 +2,8 @@
 
 namespace OAuth2;
 
+use OAuth2\Model\IOAuth2Client;
+
 /**
  * Storage engines that support the "Authorization Code"
  * grant type should implement this interface
@@ -20,7 +22,7 @@ interface IOAuth2GrantCode extends IOAuth2Storage {
    */
   const RESPONSE_TYPE_CODE = OAuth2::RESPONSE_TYPE_AUTH_CODE;
   
-  /**
+    /**
 	 * Fetch authorization code data (probably the most common grant type).
 	 *
 	 * Retrieve the stored data for the given authorization code.
@@ -30,12 +32,7 @@ interface IOAuth2GrantCode extends IOAuth2Storage {
 	 * @param $code
 	 * Authorization code to be check with.
 	 *
-	 * @return
-	 * An associative array as below, and NULL if the code is invalid:
-	 * - client_id: Stored client identifier.
-	 * - redirect_uri: Stored redirect URI.
-	 * - expires: Stored expiration in unix timestamp.
-	 * - scope: (optional) Stored scope values in space-separated string.
+	 * @return IOAuth2AuthCode
 	 *
 	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1
 	 *
@@ -56,10 +53,10 @@ interface IOAuth2GrantCode extends IOAuth2Storage {
 	 *
 	 * @param $code
 	 * Authorization code to be stored.
-	 * @param $client_id
+	 * @param IOAuth2Client $client
 	 * Client identifier to be stored.
-	 * @param $user_id
-	 * User identifier to be stored.
+	 * @param $data
+	 * Application data
 	 * @param $redirect_uri
 	 * Redirect URI to be stored.
 	 * @param $expires
@@ -69,6 +66,6 @@ interface IOAuth2GrantCode extends IOAuth2Storage {
 	 *
 	 * @ingroup oauth2_section_4
 	 */
-	public function setAuthCode($code, $client_id, $user_id, $redirect_uri, $expires, $scope = NULL);
+	public function createAuthCode($code, IOAuth2Client $client, $data, $redirect_uri, $expires, $scope = NULL);
 	
 }

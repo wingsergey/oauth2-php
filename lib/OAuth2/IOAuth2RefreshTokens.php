@@ -57,7 +57,7 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage {
 	 *
 	 * @ingroup oauth2_section_6
 	 */
-	public function setRefreshToken($refresh_token, $client_id, $user_id, $expires, $scope = NULL);
+	public function createRefreshToken($refresh_token, IOAuth2Client $client, $data, $expires, $scope = NULL);
 
 	/**
 	 * Expire a used refresh token.

@@ -11,11 +11,11 @@ namespace OAuth2;
  */
 interface IOAuth2GrantClient extends IOAuth2Storage {
   
-  /**
+    /**
 	 * Required for OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS.
 	 *
-	 * @param $client_id
-	 * Client identifier to be check with.
+	 * @param IOAuth2Client $client
+	 * Client to be check with.
 	 * @param $client_secret
 	 * (optional) If a secret is required, check that they've given the right one.
 	 *
@@ -35,5 +35,5 @@ interface IOAuth2GrantClient extends IOAuth2Storage {
 	 *
 	 * @ingroup oauth2_section_4
 	 */
-	public function checkClientCredentialsGrant($client_id, $client_secret);
+	public function checkClientCredentialsGrant(IOAuth2Client $client, $client_secret);
 }

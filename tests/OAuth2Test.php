@@ -2,6 +2,10 @@
 
 use OAuth2\OAuth2;
 use OAuth2\OAuth2ServerException;
+use OAuth2\Model\IOAuth2AccessToken;
+use OAuth2\Model\OAuth2AccessToken;
+use OAuth2\Model\OAuth2AuthCode;
+use OAuth2\Model\OAuth2Client;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -55,7 +59,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    * 
    * @dataProvider generateMalformedTokens
    */
-  public function testVerifyAccessTokenMalformedToken($token) {
+  public function testVerifyAccessTokenMalformedToken(IOAuth2AccessToken $token) {
     
     // Set up the mock storage to say this token does not exist
     $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
@@ -75,7 +79,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    * 
    * @dataProvider generateExpiryTokens
    */
-  public function testVerifyAccessTokenCheckExpiry($token, $expectedToPass) {
+  public function testVerifyAccessTokenCheckExpiry(IOAuth2AccessToken $token, $expectedToPass) {
     
     // Set up the mock storage to say this token does not exist
     $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
@@ -92,7 +96,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     if ($expectedToPass) { 
       $actual = $this->fixture->verifyAccessToken($this->tokenId, $scope);
       $this->assertNotEmpty($actual, "verifyAccessToken() was expected to PASS, but it failed");
-      $this->assertInternalType('array', $actual);
+      $this->assertInstanceOf('OAuth2\Model\IOAuth2AccessToken', $actual);
     }
     else {
       $this->setExpectedException('OAuth2\OAuth2AuthenticateException');
@@ -105,7 +109,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    * 
    * @dataProvider generateScopes
    */
-  public function testVerifyAccessTokenCheckScope($scopeRequired, $token, $expectedToPass) {
+  public function testVerifyAccessTokenCheckScope($scopeRequired, IOAuth2AccessToken $token, $expectedToPass) {
     
     // Set up the mock storage to say this token does not exist
     $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
@@ -119,7 +123,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     if ($expectedToPass) {
       $actual = $this->fixture->verifyAccessToken($this->tokenId, $scopeRequired);
       $this->assertNotEmpty($actual, "verifyAccessToken() was expected to PASS, but it failed");
-      $this->assertInternalType('array', $actual);
+      $this->assertInstanceOf('OAuth2\Model\IOAuth2AccessToken', $actual);
     }
     else {
       $this->setExpectedException('OAuth2\OAuth2AuthenticateException');
@@ -147,6 +151,9 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    */
   public function testGrantAccessTokenCheckClientCredentials() {
     $mockStorage = $this->getMock('OAuth2\IOAuth2Storage');
+    $mockStorage->expects($this->any())
+      ->method('getClient')
+      ->will($this->returnValue(new OAuth2Client('dev-abc')));
     $mockStorage->expects($this->any())
       ->method('checkClientCredentials')
       ->will($this->returnValue(TRUE)); // Always return true for any combination of user/pass
@@ -192,6 +199,13 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    */
   public function testGrantAccessTokenWithGrantAuthCodeMandatoryParams() {
     $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
+    $mockStorage->expects($this->any())
+      ->method('getClient')
+      ->will($this->returnValue(new OAuth2Client('dev-abc')));
+    $mockStorage->expects($this->any())
+      ->method('checkClientCredentials')
+      ->will($this->returnValue(TRUE)); // Always return true for any combination of user/pass
+
     $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'a', 'client_secret' => 'b');
     $fakeAuthCode = array('client_id' => $inputData['client_id'], 'redirect_uri' => '/foo', 'expires' => time() + 60);
     $fakeAccessToken = array('access_token' => 'abcde');
@@ -222,6 +236,13 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    */
   public function testGrantAccessTokenWithGrantAuthCodeNoToken() {
     $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
+    $mockStorage->expects($this->any())
+      ->method('getClient')
+      ->will($this->returnValue(new OAuth2Client('dev-abc')));
+    $mockStorage->expects($this->any())
+      ->method('checkClientCredentials')
+      ->will($this->returnValue(TRUE)); // Always return true for any combination of user/pass
+
     $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'a', 'client_secret' => 'b', 'redirect_uri' => 'foo', 'code'=> 'foo');
     
     // Ensure missing auth code raises an error
@@ -242,9 +263,15 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    */
   public function testGrantAccessTokenWithGrantAuthCodeRedirectChecked() {
     $inputData = array('redirect_uri' => 'http://www.crossdomain.com/my/subdir', 'grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'my_little_app', 'client_secret' => 'b', 'code'=> 'foo');
-    $storedToken = array('redirect_uri' => 'http://www.example.com', 'client_id' => 'my_little_app', 'expires' => time() + 60);
+    $storedToken = new OAuth2AuthCode('my_little_app', '', time() + 60, NULL, NULL, 'http://www.example.com');
     
     $mockStorage = $this->createBaseMock('Oauth2\IOAuth2GrantCode');
+    $mockStorage->expects($this->any())
+      ->method('getClient')
+      ->will($this->returnValue(new OAuth2Client('my_little_app')));
+    $mockStorage->expects($this->any())
+      ->method('checkClientCredentials')
+      ->will($this->returnValue(TRUE)); // Always return true for any combination of user/pass
     $mockStorage->expects($this->any())
       ->method('getAuthCode')
       ->will($this->returnValue($storedToken));
@@ -268,9 +295,15 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    */
   public function testGrantAccessTokenWithGrantAuthCodeClientIdChecked() {
     $inputData = array('client_id' => 'another_app', 'grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'redirect_uri' => 'http://www.example.com/my/subdir', 'client_secret' => 'b', 'code'=> 'foo');
-    $storedToken = array('client_id' => 'my_little_app', 'redirect_uri' => 'http://www.example.com', 'expires' => time() + 60);
+    $storedToken = new OAuth2AuthCode('my_little_app', '', time() + 60, NULL, NULL, 'http://www.example.com');
     
     $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
+    $mockStorage->expects($this->any())
+      ->method('getClient')
+      ->will($this->returnValue(new OAuth2Client('x')));
+    $mockStorage->expects($this->any())
+      ->method('checkClientCredentials')
+      ->will($this->returnValue(TRUE)); // Always return true for any combination of user/pass
     $mockStorage->expects($this->any())
       ->method('getAuthCode')
       ->will($this->returnValue($storedToken));
@@ -388,10 +421,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    */
   public function generateMalformedTokens() {
     return array(
-      array(array()), // an empty array as a token
-      array(array('expires' => 5)), // missing client_id
-      array(array('client_id' => 6)), // missing expires
-      array(array('something' => 6)), // missing both 'expires' and 'client_id'
+      array(new OAuth2AccessToken(NULL, NULL, NULL)),
     );
   }
   
@@ -402,13 +432,13 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    */
   public function generateExpiryTokens() {
     return array(
-      array(array('client_id' => 'blah', 'expires' => time() - 30),                 FALSE), // 30 seconds ago should fail
-      array(array('client_id' => 'blah', 'expires' => time() - 1),                  FALSE), // now-ish should fail
-      array(array('client_id' => 'blah', 'expires' => 0),                           FALSE), // 1970 should fail
-      array(array('client_id' => 'blah', 'expires' => time() + 30),                 TRUE),  // 30 seconds in the future should be valid
-      array(array('client_id' => 'blah', 'expires' => time() + 86400),              TRUE),  // 1 day in the future should be valid
-      array(array('client_id' => 'blah', 'expires' => time() + (365 * 86400)),      TRUE),  // 1 year should be valid
-      array(array('client_id' => 'blah', 'expires' => time() + (10 * 365 * 86400)), TRUE),  // 10 years should be valid
+      array(new OAuth2AccessToken('blah', '', time() - 30),                 FALSE), // 30 seconds ago should fail
+      array(new OAuth2AccessToken('blah', '', time() - 1),                  FALSE), // now-ish should fail
+      array(new OAuth2AccessToken('blah', '', 0),                           FALSE), // 1970 should fail
+      array(new OAuth2AccessToken('blah', '', time() + 30),                 TRUE),  // 30 seconds in the future should be valid
+      array(new OAuth2AccessToken('blah', '', time() + 86400),              TRUE),  // 1 day in the future should be valid
+      array(new OAuth2AccessToken('blah', '', time() + (365 * 86400)),      TRUE),  // 1 year should be valid
+      array(new OAuth2AccessToken('blah', '', time() + (10 * 365 * 86400)), TRUE),  // 10 years should be valid
     );
   }
   
@@ -419,25 +449,28 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    */
   public function generateScopes() {
     $baseToken = array('client_id' => 'blah', 'expires' => time() + 60);
+
+    $token = function($scope) {
+      return new OAuth2AccessToken('blah', '', time() + 60, $scope);
+    };
     
     return array(
-      array(null,   $baseToken + array(),                               TRUE), // missing scope is valif
-      array(null,   $baseToken + array('scope' => null),                TRUE), // null scope is valid
-      array('',     $baseToken + array('scope' => ''),                  TRUE), // empty scope is valid
-      array('read', $baseToken + array('scope' => 'read'),              TRUE), // exact same scope is valid
-      array('read', $baseToken + array('scope' => ' read '),            TRUE), // exact same scope is valid
-      array(' read ', $baseToken + array('scope' => 'read'),            TRUE), // exact same scope is valid
-      array('read', $baseToken + array('scope' => 'read write delete'), TRUE), // contains scope 
-      array('read', $baseToken + array('scope' => 'write read delete'), TRUE), // contains scope 
-      array('read', $baseToken + array('scope' => 'delete write read'), TRUE), // contains scope
+      array(null,   $token(null),                TRUE), // null scope is valid
+      array('',     $token(''),                  TRUE), // empty scope is valid
+      array('read', $token('read'),              TRUE), // exact same scope is valid
+      array('read', $token(' read '),            TRUE), // exact same scope is valid
+      array(' read ', $token('read'),            TRUE), // exact same scope is valid
+      array('read', $token('read write delete'), TRUE), // contains scope 
+      array('read', $token('write read delete'), TRUE), // contains scope 
+      array('read', $token('delete write read'), TRUE), // contains scope
       
       // Invalid combinations
-      array('read', $baseToken + array('scope' => 'write'),            FALSE),
-      array('read', $baseToken + array('scope' => 'apple banana'),     FALSE),
-      array('read', $baseToken + array('scope' => 'apple read-write'), FALSE),
-      array('read', $baseToken + array('scope' => 'apple read,write'), FALSE),
-      array('read', $baseToken + array('scope' => null),               FALSE),
-      array('read', $baseToken + array('scope' => ''),                 FALSE),
+      array('read', $token('write'),             FALSE),
+      array('read', $token('apple banana'),      FALSE),
+      array('read', $token('apple read-write'),  FALSE),
+      array('read', $token('apple read,write'),  FALSE),
+      array('read', $token(null),                FALSE),
+      array('read', $token(''),                  FALSE),
     );
   }
   

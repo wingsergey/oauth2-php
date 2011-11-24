@@ -13,7 +13,8 @@ interface IOAuth2GrantExtension extends IOAuth2Storage {
   
   /**
 	 * Check any extended grant types.
-	 * 
+     * 
+     * @param IOAuth2Client $client
 	 * @param string $uri
 	 * URI of the grant type definition
 	 * @param array $inputData
@@ -33,5 +34,5 @@ interface IOAuth2GrantExtension extends IOAuth2Storage {
 	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-1.4.5
 	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.2
 	 */
-	public function checkGrantExtension($uri, array $inputData, array $authHeaders);
+	public function checkGrantExtension(IOAuth2Client $client, $uri, array $inputData, array $authHeaders);
 }

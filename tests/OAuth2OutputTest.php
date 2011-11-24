@@ -1,6 +1,8 @@
 <?php
 
 use OAuth2\OAuth2;
+use OAuth2\Model\OAuth2AuthCode;
+use OAuth2\Model\OAuth2Client;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -21,8 +23,8 @@ class OAuth2OutputTest extends PHPUnit_Framework_TestCase {
     $request = new Request(
       array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'redirect_uri' => 'http://www.example.com/my/subdir', 'client_id' => 'my_little_app', 'client_secret' => 'b', 'code'=> 'foo')
     );
-    $storedToken = array('redirect_uri' => 'http://www.example.com', 'client_id' => 'my_little_app', 'expires' => time() + 60);
-    
+    $storedToken = new OAuth2AuthCode('my_little_app', '', time() + 60, NULL, NULL, 'http://www.example.com');
+
     $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
     $mockStorage->expects($this->any())
       ->method('getAuthCode')
@@ -42,7 +44,7 @@ class OAuth2OutputTest extends PHPUnit_Framework_TestCase {
     $request = new Request(
       array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'my_little_app', 'client_secret' => 'b', 'code'=> 'foo')
     );
-    $storedToken = array('redirect_uri' => 'http://www.example.com', 'client_id' => 'my_little_app', 'expires' => time() + 60);
+    $storedToken = new OAuth2AuthCode('my_little_app', '', time() + 60, NULL, NULL, 'http://www.example.com');
     
     $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
     $mockStorage->expects($this->any())
@@ -64,7 +66,17 @@ class OAuth2OutputTest extends PHPUnit_Framework_TestCase {
    * @param string $interfaceName
    */
   protected function createBaseMock($interfaceName) {
+
+    $client = new OAuth2Client('my_little_app');
+
     $mockStorage = $this->getMock($interfaceName);
+    $mockStorage->expects($this->any())
+      ->method('getClient')
+      ->will($this->returnCallback(function($id) use ($client) {
+        if ('my_little_app' === $id) {
+          return $client;
+        }
+      }));
     $mockStorage->expects($this->any())
       ->method('checkClientCredentials')
       ->will($this->returnValue(TRUE)); // Always return true for any combination of user/pass

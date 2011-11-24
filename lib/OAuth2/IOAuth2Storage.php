@@ -2,12 +2,19 @@
 
 namespace OAuth2;
 
+use OAuth2\Model\IOAuth2Client;
+
 /**
  * All storage engines need to implement this interface in order to use OAuth2 server
  * 
  * @author David Rochwerger <catch.dave@gmail.com>
  */
 interface IOAuth2Storage {
+
+    /**
+     * @return IOAuth2Client
+     */
+    public function getClient($client_id);
 
 	/**
 	 * Make sure that the client credentials is valid.
@@ -25,24 +32,7 @@ interface IOAuth2Storage {
 	 *
 	 * @ingroup oauth2_section_3
 	 */
-	public function checkClientCredentials($client_id, $client_secret = NULL);
-	
-	/**
-	 * Get client details corresponding client_id.
-	 *
-	 * OAuth says we should store request URIs for each registered client.
-	 * Implement this function to grab the stored URI for a given client id.
-	 *
-	 * @param $client_id
-	 * Client identifier to be check with.
-	 *
-	 * @return array
-	 * Client details. Only mandatory item is the "registered redirect URI", and MUST
-	 * return FALSE if the given client does not exist or is invalid.
-	 *
-	 * @ingroup oauth2_section_4
-	 */
-	public function getClientDetails($client_id);
+	public function checkClientCredentials(IOAuth2Client $client, $client_secret = NULL);
 
 	/**
 	 * Look up the supplied oauth_token from storage.
@@ -52,12 +42,7 @@ interface IOAuth2Storage {
 	 * @param $oauth_token
 	 * oauth_token to be check with.
 	 *
-	 * @return
-	 * An associative array as below, and return NULL if the supplied oauth_token
-	 * is invalid:
-	 * - client_id: Stored client identifier.
-	 * - expires: Stored expiration in unix timestamp.
-	 * - scope: (optional) Stored scope values in space-separated string.
+	 * @return IOAuth2AccessToken
 	 *
 	 * @ingroup oauth2_section_7
 	 */
@@ -81,7 +66,7 @@ interface IOAuth2Storage {
 	 *
 	 * @ingroup oauth2_section_4
 	 */
-	public function setAccessToken($oauth_token, $client_id, $user_id, $expires, $scope = NULL);
+	public function createAccessToken($oauth_token, IOAuth2Client $client, $data, $expires, $scope = NULL);
 
 	/**
 	 * Check restricted grant types of corresponding client identifier.
@@ -89,8 +74,8 @@ interface IOAuth2Storage {
 	 * If you want to restrict clients to certain grant types, override this
 	 * function.
 	 *
-	 * @param $client_id
-	 * Client identifier to be check with.
+	 * @param IOAuth2Client $client
+	 * Client to be check with.
 	 * @param $grant_type
 	 * Grant type to be check with, would be one of the values contained in
 	 * OAuth2::GRANT_TYPE_REGEXP.
@@ -101,5 +86,5 @@ interface IOAuth2Storage {
 	 *
 	 * @ingroup oauth2_section_4
 	 */
-	public function checkRestrictedGrantType($client_id, $grant_type);
+	public function checkRestrictedGrantType($client, $grant_type);
 }
