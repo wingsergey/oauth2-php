@@ -6,6 +6,8 @@ use OAuth2\Model\IOAuth2AccessToken;
 use OAuth2\Model\OAuth2AccessToken;
 use OAuth2\Model\OAuth2AuthCode;
 use OAuth2\Model\OAuth2Client;
+use OAuth2\OAuth2StorageStub;
+use OAuth2\OAuth2GrantCodeStub;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -387,11 +389,260 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    * Tests OAuth2->finishClientAuthorization()
    */
   public function testFinishClientAuthorization() {
-    // TODO Auto-generated OAuth2Test->testFinishClientAuthorization()
-    $this->markTestIncomplete ( "finishClientAuthorization test not implemented" );
-    
-    $this->fixture->finishClientAuthorization(/* parameters */);
-  
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+        'client_id' => 'blah',
+        'redirect_uri' => 'http://www.example.com/?foo=bar',
+        'response_type' => 'code',
+        'state' => '42',
+    )));
+
+    $this->assertSame(302, $response->getStatusCode());
+    $this->assertRegexp('#^http://www\.example\.com/\?foo=bar&state=42&code=#', $response->headers->get('location'));
+
+    $code = $stub->getLastAuthCode();
+    $this->assertSame('blah', $code->getClientId());
+    $this->assertSame(null, $code->getScope());
+    $this->assertSame($data, $code->getData());
+  }
+
+  public function testFinishClientAuthorizationThrowsErrorIfClientIdMissing() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {  
+      $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+        'redirect_uri' => 'http://www.example.com/?foo=bar',
+        'response_type' => 'code',
+        'state' => '42',
+      )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('invalid_request', $e->getMessage());
+      $this->assertSame('No client id supplied', $e->getDescription());
+    }
+  }
+
+  public function testFinishClientAuthorizationThrowsErrorIfClientUnkown() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {
+      $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+        'client_id' => 'foo',
+        'redirect_uri' => 'http://www.example.com/?foo=bar',
+        'response_type' => 'code',
+        'state' => '42',
+      )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('invalid_client', $e->getMessage());
+      $this->assertSame('Unknown client', $e->getDescription());
+    }
+  }
+
+  public function testFinishClientAuthorizationThrowsErrorIfNoAvailUri() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array()));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {
+      $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+        'client_id' => 'blah',
+        'response_type' => 'code',
+        'state' => '42',
+      )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('redirect_uri_mismatch', $e->getMessage());
+      $this->assertSame('No redirect URL was supplied or registered.', $e->getDescription());
+    }
+  }
+
+  public function testFinishClientAuthorizationThrowsErrorIfMoreThanOneRegisterdUriAndNoSupplied() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com', 'http://b.example.com')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {
+      $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+        'client_id' => 'blah',
+        'response_type' => 'code',
+        'state' => '42',
+      )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('redirect_uri_mismatch', $e->getMessage());
+      $this->assertSame('No redirect URL was supplied and more than one is registered.', $e->getDescription());
+    }
+  }
+
+  public function testFinishClientAuthorizationThrowsErrorIfNoSuppliedUri() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {
+      $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+        'client_id' => 'blah',
+        'response_type' => 'code',
+        'state' => '42',
+      )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('redirect_uri_mismatch', $e->getMessage());
+      $this->assertSame('The redirect URI is mandatory and was not supplied.', $e->getDescription());
+    }
+  }
+
+  public function testFinishClientAuthorizationThrowsErrorIfNoMatchingUri() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {
+      $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+        'client_id' => 'blah',
+        'response_type' => 'code',
+        'state' => '42',
+        'redirect_uri' => 'http://www.example.com/',
+      )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('redirect_uri_mismatch', $e->getMessage());
+      $this->assertSame('The redirect URI provided does not match registered URI(s).', $e->getDescription());
+    }
+  }
+
+  public function testFinishClientAuthorizationThrowsErrorIfResponseTypeIsMissing() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {
+      $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+          'client_id' => 'blah',
+          'redirect_uri' => 'http://www.example.com/?foo=bar',
+          'state' => '42',
+      )));
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('invalid_request', $e->getMessage());
+      $this->assertSame('Invalid response type.', $e->getDescription());
+    }
+  }
+
+  public function testFinishClientAuthorizationThrowsErrorIfResponseTypeNotSupported() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {
+      $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+          'client_id' => 'blah',
+          'redirect_uri' => 'http://www.example.com/?foo=bar',
+          'state' => '42',
+          'response_type' => 'token',
+      )));
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('unsupported_response_type', $e->getMessage());
+    }
+  }
+
+  public function testFinishClientAuthorizationThrowsErrorIfResponseTypeUnknown() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {
+      $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+          'client_id' => 'blah',
+          'redirect_uri' => 'http://www.example.com/?foo=bar',
+          'state' => '42',
+          'response_type' => 'foo',
+      )));
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('unsupported_response_type', $e->getMessage());
+    }
+  }
+
+  public function testFinishClientAuthorizationThrowsErrorIfScopeUnkown() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {
+      $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+          'client_id' => 'blah',
+          'redirect_uri' => 'http://www.example.com/?foo=bar',
+          'state' => '42',
+          'response_type' => 'code',
+          'scope' => 'x',
+      )));
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('invalid_scope', $e->getMessage());
+    }
+  }
+
+  public function testFinishClientAuthorizationThrowsErrorIfUnauthorized() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {
+      $response = $oauth2->finishClientAuthorization(false, $data, new Request(array(
+          'client_id' => 'blah',
+          'redirect_uri' => 'http://www.example.com/?foo=bar',
+          'state' => '42',
+          'response_type' => 'code',
+      )));
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('access_denied', $e->getMessage());
+      $this->assertSame('The user denied access to your application', $e->getDescription());
+      $this->assertSame(array(
+        'Location' => 'http://www.example.com/?foo=bar&error=access_denied&error_description=The+user+denied+access+to+your+application&state=42',
+      ), $e->getResponseHeaders());
+    }
   }
 
   // Utility methods

@@ -41,17 +41,18 @@ class OAuth2RedirectException extends OAuth2ServerException {
     
   }
   
-	/**
+  /**
    * Redirect the user agent.
    *
    * @ingroup oauth2_section_4
    */
-  protected function sendHeaders() {
+  public function getResponseHeaders() {
     $params = array('query' => $this->errorData);
-    header("Location: " . $this->buildUri($this->redirectUri, $params));
-    exit; // No point in printing out data if we're redirecting
+    return array(
+        'Location' => $this->buildUri($this->redirectUri, $params),
+    );
   }
-  
+
   /**
    * Build the absolute URI based on supplied URI and parameters.
    *

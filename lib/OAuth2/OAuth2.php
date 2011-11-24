@@ -353,9 +353,13 @@ class OAuth2 {
   		self::CONFIG_REFRESH_LIFETIME       => self::DEFAULT_REFRESH_TOKEN_LIFETIME, 
   		self::CONFIG_AUTH_LIFETIME          => self::DEFAULT_AUTH_CODE_LIFETIME,
   		self::CONFIG_WWW_REALM              => self::DEFAULT_WWW_REALM,
-  		self::CONFIG_TOKEN_TYPE             => self::TOKEN_TYPE_BEARER,
-  		self::CONFIG_ENFORCE_INPUT_REDIRECT => FALSE,
-      self::CONFIG_SUPPORTED_SCOPES       => array() // This is expected to be passed in on construction. Scopes can be an aribitrary string.  
+        self::CONFIG_TOKEN_TYPE             => self::TOKEN_TYPE_BEARER,
+
+        // We have to enforce this only when no URI or more than one URI is
+        // registered; however it's safer to enfore this by default since
+        // a client may break by just registering more than one URI.
+  		self::CONFIG_ENFORCE_INPUT_REDIRECT => TRUE,
+        self::CONFIG_SUPPORTED_SCOPES       => array() // This is expected to be passed in on construction. Scopes can be an aribitrary string.  
   	);
   }
 
@@ -818,35 +822,20 @@ class OAuth2 {
 
     // Make sure a valid client id was supplied (we can not redirect because we were unable to verify the URI)
     if (!$input["client_id"]) {
-      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, "No client id supplied"); // We don't have a good URI to use
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_REQUEST, "No client id supplied"); // We don't have a good URI to use
     }
     
     // Get client details
-    $stored = $this->storage->getClient($input["client_id"]);
-    if ( ! $stored) {
-      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT);
+    $client = $this->storage->getClient($input["client_id"]);
+    if ( ! $client) {
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, 'Unknown client');
     }
-    
-    // Make sure a valid redirect_uri was supplied. If specified, it must match the stored URI.
-    // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-3.1.2
-    // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1.2.1
-    // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.2.2.1
-    if (!$input["redirect_uri"] && !$stored["redirect_uri"]) {
-      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, 'No redirect URL was supplied or stored.');
-    }
-    if ($this->getVariable(self::CONFIG_ENFORCE_INPUT_REDIRECT) && !$input["redirect_uri"]) {
-      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, 'The redirect URI is mandatory and was not supplied.');
-    }
-    if ($stored["redirect_uri"] && $input["redirect_uri"] && !$this->validateRedirectUri($input["redirect_uri"], $stored["redirect_uri"])) {
-      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, 'The rediect URI provided is missing or does not match');
-    }
-    
-    // Select the redirect URI
-    $input["redirect_uri"] = isset($input["redirect_uri"]) ? $input["redirect_uri"] : $stored["redirect_uri"];
+
+    $input["redirect_uri"] = $this->getRedirectUri($input["redirect_uri"], $client);
 
     // type and client_id are required
     if (!$input["response_type"])
-      throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_INVALID_REQUEST, 'Invalid or missing response type.', $input["state"]);
+      throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_INVALID_REQUEST, 'Invalid response type.', $input["state"]);
 
     // Check requested auth response type against interfaces of storage engine
     if ($input['response_type'] == self::RESPONSE_TYPE_AUTH_CODE) {
@@ -857,6 +846,8 @@ class OAuth2 {
         if (!$this->storage instanceof IOAuth2GrantImplicit) {
             throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_UNSUPPORTED_RESPONSE_TYPE, NULL, $input["state"]);
         }
+    } else {
+        throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_UNSUPPORTED_RESPONSE_TYPE, NULL, $input["state"]);
     }
 
     // Validate that the requested scope is supported
@@ -865,10 +856,46 @@ class OAuth2 {
 
     // Return retrieved client details together with input
     return array(
-        'client' => $stored,
+        'client' => $client,
     ) + $input;
   }
 
+  protected function getRedirectUri($redirect_uri, IOAuth2Client $client) {
+    
+    // Make sure a valid redirect_uri was supplied. If specified, it must match the stored URI.
+    // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-3.1.2
+    // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1.2.1
+    // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.2.2.1
+
+
+    // If multiple redirection URIs have been registered, or if no redirection
+    // URI has been registered, the client MUST include a redirection URI with 
+    // the authorization request using the "redirect_uri" request parameter.
+
+    if (empty($redirect_uri)) {
+      if (!$client->getRedirectUris()) {
+        throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, 'No redirect URL was supplied or registered.');
+      }
+      if (count($client->getRedirectUris()) > 1) {
+        throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, 'No redirect URL was supplied and more than one is registered.');
+      }
+      if ($this->getVariable(self::CONFIG_ENFORCE_INPUT_REDIRECT)) {
+        throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, 'The redirect URI is mandatory and was not supplied.');
+      }
+
+      $redirect_uri = current($client->getRedirectUris());
+
+    } else {
+
+      if (!$this->validateRedirectUri($redirect_uri, $client->getRedirectUris())) {
+        throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, 'The redirect URI provided does not match registered URI(s).');
+      }
+
+    }
+
+    return $redirect_uri;
+  }
+    
   /**
    * Redirect the user appropriately after approval.
    *
@@ -907,22 +934,22 @@ class OAuth2 {
       'state' => NULL,
     );
 
-    if ($state !== NULL)
-      $result["query"]["state"] = $state;
+    if ($params["state"])
+      $result["query"]["state"] = $params["state"];
 
     if ($is_authorized === FALSE) {
-      throw new OAuth2RedirectException($redirect_uri, self::ERROR_USER_DENIED, "The user denied access to your application", $state);
+      throw new OAuth2RedirectException($params["redirect_uri"], self::ERROR_USER_DENIED, "The user denied access to your application", $params["state"]);
     }
     else {
-      if ($response_type == self::RESPONSE_TYPE_AUTH_CODE) {
-        $result["query"]["code"] = $this->createAuthCode($client, $data, $redirect_uri, $scope);
+      if ($params["response_type"] == self::RESPONSE_TYPE_AUTH_CODE) {
+        $result["query"]["code"] = $this->createAuthCode($params["client"], $data, $params["redirect_uri"], $scope);
       }
-      elseif ($response_type == self::RESPONSE_TYPE_ACCESS_TOKEN) {
-        $result["fragment"] = $this->createAccessToken($client, $data, $scope);
+      elseif ($params["response_type"] == self::RESPONSE_TYPE_ACCESS_TOKEN) {
+        $result["fragment"] = $this->createAccessToken($params["client"], $data, $scope);
       }
     }
 
-    return $this->createRedirectUriCallbackResponse($redirect_uri, $result);
+    return $this->createRedirectUriCallbackResponse($params["redirect_uri"], $result);
   }
 
   // Other/utility functions.
@@ -1036,9 +1063,9 @@ class OAuth2 {
    *
    * @ingroup oauth2_section_4
    */
-  private function createAuthCode(IOAuthClient $client, $data, $redirect_uri, $scope = NULL) {
+  private function createAuthCode(IOAuth2Client $client, $data, $redirect_uri, $scope = NULL) {
     $code = $this->genAuthCode();
-    $this->storage->setAuthCode($code, $client, $data, $redirect_uri, time() + $this->getVariable(self::CONFIG_AUTH_LIFETIME), $scope);
+    $this->storage->createAuthCode($code, $client, $data, $redirect_uri, time() + $this->getVariable(self::CONFIG_AUTH_LIFETIME), $scope);
     return $code;
   }
 
@@ -1115,10 +1142,18 @@ class OAuth2 {
    * @param string $inputUri
    * @param string $storedUri
    */
-  protected function validateRedirectUri($inputUri, $storedUri) {
-  	if (!$inputUri || !$storedUri) {
+  protected function validateRedirectUri($inputUri, $storedUris) {
+  	if (!$inputUri || !$storedUris) {
   	  return true; // need both to validate
   	}
-  	return strcasecmp(substr($inputUri, 0, strlen($storedUri)), $storedUri) === 0;
+    if (!is_array($storedUris)) {
+      $storedUris = array($storedUris);
+    }
+    foreach ($storedUris as $storedUri) {
+      if (strcasecmp(substr($inputUri, 0, strlen($storedUri)), $storedUri) === 0) {
+        return true;
+      }
+    }
+    return false;
   }
 }
