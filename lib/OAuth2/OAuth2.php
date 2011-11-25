@@ -467,7 +467,7 @@ class OAuth2 {
    * 
    * We don't want to test this functionality as it relies on superglobals and headers:
    */
-  public function getBearerToken(Request $request = NULL) {
+  public function getBearerToken(Request $request = NULL, $removeFromRequest = false) {
 
     if ($request === NULL) {
       $request = Request::createFromGlobals();
@@ -498,6 +498,9 @@ class OAuth2 {
         throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'Malformed auth header');
       }
       
+      if ($removeFromRequest) {
+        $request->headers->remove('AUTHORIZATION');
+      }
       return $matches[1];
     }
     
@@ -514,11 +517,19 @@ class OAuth2 {
         }
       }
       
-      return $request->request->get(self::TOKEN_PARAM_NAME);
+      $token = $request->request->get(self::TOKEN_PARAM_NAME);
+      if ($removeFromRequest) {
+        $request->request->remove(self::TOKEN_PARAM_NAME);
+      }
+      return $token;
     }
    
     // GET method
-    return $request->query->get(self::TOKEN_PARAM_NAME);
+    $token = $request->query->get(self::TOKEN_PARAM_NAME);
+    if ($removeFromRequest) {
+      $request->query->remove(self::TOKEN_PARAM_NAME);
+    }
+    return $token;
   }
 
   /**

@@ -781,14 +781,19 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
   /**
    * @dataProvider getTestGetBearerTokenData
    */
-  public function testGetBearerToken(Request $request, $token, $exception = null, $exceptionMessage = null, $headers = null, $body = null) {
+  public function testGetBearerToken(Request $request, $token, $remove = false, $exception = null, $exceptionMessage = null, $headers = null, $body = null) {
     $mock = $this->getMock('OAuth2\IOAuth2Storage');
     $oauth2 = new OAuth2($mock);
 
     try {
-      $this->assertSame($token, $oauth2->getBearerToken($request));
+      $this->assertSame($token, $oauth2->getBearerToken($request, $remove));
       if ($exception) {
         $this->fail('The expected exception OAuth2ServerException was not thrown');
+      }
+      if ($remove) {
+        $this->assertNull($request->headers->get('AUTHORIZATION'));
+        $this->assertNull($request->query->get('access_token'));
+        $this->assertNull($request->request->get('access_token'));
       }
     } catch(\Exception $e) {
       if (!$exception || !($e instanceof $exception)) {
@@ -808,8 +813,16 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     $request->headers->set('AUTHORIZATION', 'Bearer foo');
     $data[] = array($request, 'foo');
 
+    // Authorization header with remove
+    $request = new Request;
+    $request->headers->set('AUTHORIZATION', 'Bearer foo');
+    $data[] = array($request, 'foo', true);
+
     // GET
     $data[] = array(new Request(array('access_token' => 'foo')), 'foo');
+
+    // GET with remove
+    $data[] = array(new Request(array('access_token' => 'foo')), 'foo', true);
 
     // POST
     $request = new Request;
@@ -817,6 +830,13 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     $request->server->set('CONTENT_TYPE', 'application/x-www-form-urlencoded');
     $request->request->set('access_token', 'foo');
     $data[] = array($request, 'foo');
+
+    // POST with remove
+    $request = new Request;
+    $request->setMethod('POST');
+    $request->server->set('CONTENT_TYPE', 'application/x-www-form-urlencoded');
+    $request->request->set('access_token', 'foo');
+    $data[] = array($request, 'foo', true);
 
     // No access token provided returns NULL
     $data[] = array(new Request, NULL);
@@ -826,6 +846,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     $request->headers->set('AUTHORIZATION', 'Bearer foo');
     $data[] = array(
       $request,
+      null,
       null,
       'OAuth2\OAuth2ServerException',
       'invalid_request',
@@ -845,6 +866,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     $request->request->set('access_token', 'foo');
     $data[] = array(
       $request,
+      null,
       null,
       'OAuth2\OAuth2ServerException',
       'invalid_request',
