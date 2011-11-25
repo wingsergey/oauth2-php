@@ -487,9 +487,11 @@ class OAuth2 {
       throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'Only one method may be used to authenticate at a time (Auth header, GET or POST).');
     }
     elseif ($methodsUsed == 0) {
-      throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'The access token was not found.');
+        // Don't throw exception here as we may want to allow non-authenticated
+        // requests.
+        return null;
     }
-    
+
     // HEADER: Get the access token from the header
     if (!empty($headers)) {
       if (!preg_match('/'.self::TOKEN_BEARER_HEADER_NAME.'\s(\S+)/', $headers, $matches)) {
