@@ -781,14 +781,22 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
   /**
    * @dataProvider getTestGetBearerTokenData
    */
-  public function testGetBearerToken(Request $request, $token, $exception = null, $exceptionMessage = null) {
+  public function testGetBearerToken(Request $request, $token, $exception = null, $exceptionMessage = null, $headers = null, $body = null) {
     $mock = $this->getMock('OAuth2\IOAuth2Storage');
     $oauth2 = new OAuth2($mock);
 
-    if ($exception) {
-      $this->setExpectedException($exception, $exceptionMessage);
+    try {
+      $this->assertSame($token, $oauth2->getBearerToken($request));
+      if ($exception) {
+        $this->fail('The expected exception OAuth2ServerException was not thrown');
+      }
+    } catch(\Exception $e) {
+      if (!$exception || !($e instanceof $exception)) {
+        throw $e;
+      }
+      $this->assertSame($headers, $e->getResponseHeaders());
+      $this->assertSame($body, $e->getResponseBody());
     }
-    $this->assertSame($token, $oauth2->getBearerToken($request));
   }
 
   public function getTestGetBearerTokenData() {
@@ -816,14 +824,38 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     // More than one method throws exception
     $request = new Request(array('access_token' => 'foo'));
     $request->headers->set('AUTHORIZATION', 'Bearer foo');
-    $data[] = array($request, null, 'OAuth2\OAuth2ServerException', 'invalid_request');
+    $data[] = array(
+      $request,
+      null,
+      'OAuth2\OAuth2ServerException',
+      'invalid_request',
+      array(
+        'WWW-Authenticate' => 'Bearer realm="Service", error="invalid_request", error_description="Only one method may be used to authenticate at a time (Auth header, GET or POST)."',
+        'Content-Type' => 'application/json',
+        'Cache-Control' => 'no-store',
+        'Pragma' => 'no-cache',
+      ),
+      '{"error":"invalid_request","error_description":"Only one method may be used to authenticate at a time (Auth header, GET or POST)."}'
+    );
 
     // POST with incorrect Content-Type throws exception
     $request = new Request;
     $request->setMethod('POST');
     $request->server->set('CONTENT_TYPE', 'multipart/form-data');
     $request->request->set('access_token', 'foo');
-    $data[] = array($request, null, 'OAuth2\OAuth2ServerException', 'invalid_request');
+    $data[] = array(
+      $request,
+      null,
+      'OAuth2\OAuth2ServerException',
+      'invalid_request',
+      array(
+        'WWW-Authenticate' => 'Bearer realm="Service", error="invalid_request", error_description="The content type for POST requests must be \"application/x-www-form-urlencoded\""',
+        'Content-Type' => 'application/json',
+        'Cache-Control' => 'no-store',
+        'Pragma' => 'no-cache',
+      ),
+      '{"error":"invalid_request","error_description":"The content type for POST requests must be \"application\/x-www-form-urlencoded\""}'
+    );
 
     return $data;
   }

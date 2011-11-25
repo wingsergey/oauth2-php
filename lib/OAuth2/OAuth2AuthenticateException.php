@@ -37,21 +37,29 @@ class OAuth2AuthenticateException extends OAuth2ServerException {
     }
     
     // Build header
-    $this->header = sprintf('WWW-Authenticate: %s realm="%s"', ucwords($tokenType), $realm);
+    $header = sprintf('%s realm=%s', ucwords($tokenType), $this->quotedString($realm));
     foreach ($this->errorData as $key => $value) {
-      $this->header .= ", $key=\"$value\"";
-    } 
+      $header .= sprintf(', %s=%s', $key, $this->quotedString($value));
+    }
+    $this->header = array('WWW-Authenticate' => $header);
   }
-  
-	/**
-   * Send out HTTP headers for JSON.
-   *
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.1
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.2
-   *
-   * @ingroup oauth2_section_5
-   */
-  protected function sendHeaders() {
-    header($this->header);
+
+  public function getResponseHeaders() {
+    return $this->header + parent::getResponseHeaders();
+  }
+
+  private function quotedString($str) {
+
+    // https://tools.ietf.org/html/draft-ietf-httpbis-p1-messaging-17#section-3.2.3
+    $str = preg_replace('~
+      [^
+        \x21-\x7E
+        \x80-\xFF
+        \ \t
+      ]
+      ~x', '', $str);
+    $str = addcslashes($str, '"\\');
+
+    return '"' . $str . '"';
   }
 }
