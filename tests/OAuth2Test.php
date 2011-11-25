@@ -778,6 +778,56 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     }
   }
 
+  /**
+   * @dataProvider getTestGetBearerTokenData
+   */
+  public function testGetBearerToken(Request $request, $token, $exception = null, $exceptionMessage = null) {
+    $mock = $this->getMock('OAuth2\IOAuth2Storage');
+    $oauth2 = new OAuth2($mock);
+
+    if ($exception) {
+      $this->setExpectedException($exception, $exceptionMessage);
+    }
+    $this->assertSame($token, $oauth2->getBearerToken($request));
+  }
+
+  public function getTestGetBearerTokenData() {
+
+    $data = array();
+
+    // Authorization header
+    $request = new Request;
+    $request->headers->set('AUTHORIZATION', 'Bearer foo');
+    $data[] = array($request, 'foo');
+
+    // GET
+    $data[] = array(new Request(array('access_token' => 'foo')), 'foo');
+
+    // POST
+    $request = new Request;
+    $request->setMethod('POST');
+    $request->server->set('CONTENT_TYPE', 'application/x-www-form-urlencoded');
+    $request->request->set('access_token', 'foo');
+    $data[] = array($request, 'foo');
+
+    // No access token provided returns NULL
+    $data[] = array(new Request, NULL);
+
+    // More than one method throws exception
+    $request = new Request(array('access_token' => 'foo'));
+    $request->headers->set('AUTHORIZATION', 'Bearer foo');
+    $data[] = array($request, null, 'OAuth2\OAuth2ServerException', 'invalid_request');
+
+    // POST with incorrect Content-Type throws exception
+    $request = new Request;
+    $request->setMethod('POST');
+    $request->server->set('CONTENT_TYPE', 'multipart/form-data');
+    $request->request->set('access_token', 'foo');
+    $data[] = array($request, null, 'OAuth2\OAuth2ServerException', 'invalid_request');
+
+    return $data;
+  }
+
   // Utility methods
   
   /**

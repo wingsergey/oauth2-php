@@ -508,7 +508,7 @@ class OAuth2 {
       }
       
       // IETF specifies content-type. NB: Not all webservers populate this _SERVER variable
-      if ($contentType = $request->getContentType()) {
+      if ($contentType = $request->server->get('CONTENT_TYPE')) {
         if ($contentType != 'application/x-www-form-urlencoded') {
           throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'The content type for POST requests must be "application/x-www-form-urlencoded"');
         }
