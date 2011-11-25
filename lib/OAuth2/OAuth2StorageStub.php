@@ -57,7 +57,7 @@ class OAuth2StorageStub implements IOAuth2Storage {
         $this->allowedGrantTypes = $types;
     }
 
-    public function checkRestrictedGrantType($client, $grant_type) {
+    public function checkRestrictedGrantType(IOAuth2Client $client, $grant_type) {
         return in_array($grant_type, $this->allowedGrantTypes);
     }
 }

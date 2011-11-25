@@ -86,5 +86,5 @@ interface IOAuth2Storage {
 	 *
 	 * @ingroup oauth2_section_4
 	 */
-	public function checkRestrictedGrantType($client, $grant_type);
+	public function checkRestrictedGrantType(IOAuth2Client $client, $grant_type);
 }
