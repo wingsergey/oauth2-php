@@ -1023,12 +1023,11 @@ class OAuth2 {
    * @ingroup oauth2_section_5
    */
   protected function createAccessToken(IOAuth2Client $client, $data, $scope=NULL) {
-
     $token = array(
       "access_token" => $this->genAccessToken(),
       "expires_in"   => $this->getVariable(self::CONFIG_ACCESS_LIFETIME),
       "token_type"   => $this->getVariable(self::CONFIG_TOKEN_TYPE),
-      "scope"        => $scope
+      "scope"        => $scope,
     );
 
     $this->storage->createAccessToken($token["access_token"], $client, $data, time() + $this->getVariable(self::CONFIG_ACCESS_LIFETIME), $scope);

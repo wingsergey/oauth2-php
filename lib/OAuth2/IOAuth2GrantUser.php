@@ -2,6 +2,8 @@
 
 namespace OAuth2;
 
+use OAuth2\Model\IOAuth2Client;
+
 /**
  * Storage engines that support the "Resource Owner Password Credentials"
  * grant type should implement this interface

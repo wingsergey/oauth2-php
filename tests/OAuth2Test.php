@@ -8,6 +8,7 @@ use OAuth2\Model\OAuth2AuthCode;
 use OAuth2\Model\OAuth2Client;
 use OAuth2\OAuth2StorageStub;
 use OAuth2\OAuth2GrantCodeStub;
+use OAuth2\OAuth2GrantUserStub;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -338,12 +339,139 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
    * 
    */
   public function testGrantAccessTokenWithGrantUser() {
-    $this->markTestIncomplete ( "grantAccessToken test not implemented" );
-    
-    $this->fixture->grantAccessToken(/* parameters */);
+
+    $data = new \stdClass;
+
+    $stub = new OAuth2GrantUserStub;
+    $stub->addClient(new OAuth2Client('cid', 'cpass'));
+    $stub->addUser('foo', 'bar', null, $data);
+    $stub->setAllowedGrantTypes(array('authorization_code', 'password'));
+
+    $oauth2 = new OAuth2($stub);
+
+    $response = $oauth2->grantAccessToken(new Request(array(
+      'grant_type' => 'password',
+      'client_id' => 'cid',
+      'client_secret' => 'cpass',
+      'username' => 'foo',
+      'password' => 'bar',
+    )));
+
+    $this->assertSame(array(
+      'content-type' => array('application/json;charset=UTF-8'),
+      'cache-control' => array('no-store, private'),
+      'pragma' => array('no-cache'),
+    ), array_diff_key(
+      $response->headers->all(), 
+      array('date' => null)
+    ));
+
+    $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":null}', $response->getContent());
+
+    $token = $stub->getLastAccessToken();
+    $this->assertSame('cid', $token->getClientId());
+    $this->assertSame($data, $token->getData());
+    $this->assertSame(null, $token->getScope());
+  }
+
+  public function testGrantAccessTokenWithGrantUserWithAddScopeThrowsError() {
+
+    $stub = new OAuth2GrantUserStub;
+    $stub->addClient(new OAuth2Client('cid', 'cpass'));
+    $stub->addUser('foo', 'bar');
+    $stub->setAllowedGrantTypes(array('authorization_code', 'password'));
+
+    $oauth2 = new OAuth2($stub);
+
+    try {
+      $response = $oauth2->grantAccessToken(new Request(array(
+        'grant_type' => 'password',
+        'client_id' => 'cid',
+        'client_secret' => 'cpass',
+        'username' => 'foo',
+        'password' => 'bar',
+        'scope' => 'scope1 scope2',
+      )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
+    } catch(OAuth2ServerException $e) {
+      $this->assertSame('invalid_scope', $e->getMessage());
+      $this->assertSame(array(
+        'Content-Type' => 'application/json',
+        'Cache-Control' => 'no-store',
+        'Pragma' => 'no-cache',
+      ), $e->getResponseHeaders());
+      $this->assertSame('{"error":"invalid_scope"}', $e->getResponseBody());
+    }
   }
   
+  public function testGrantAccessTokenWithGrantUserWithScope() {
+
+    $stub = new OAuth2GrantUserStub;
+    $stub->addClient(new OAuth2Client('cid', 'cpass'));
+    $stub->addUser('foo', 'bar', 'scope1 scope2');
+    $stub->setAllowedGrantTypes(array('authorization_code', 'password'));
+
+    $oauth2 = new OAuth2($stub);
+
+    $response = $oauth2->grantAccessToken(new Request(array(
+      'grant_type' => 'password',
+      'client_id' => 'cid',
+      'client_secret' => 'cpass',
+      'username' => 'foo',
+      'password' => 'bar',
+      'scope' => 'scope1 scope2',
+    )));
+
+    $this->assertSame(array(
+      'content-type' => array('application/json;charset=UTF-8'),
+      'cache-control' => array('no-store, private'),
+      'pragma' => array('no-cache'),
+    ), array_diff_key(
+      $response->headers->all(), 
+      array('date' => null)
+    ));
+
+    $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1 scope2"}', $response->getContent());
+
+    $token = $stub->getLastAccessToken();
+    $this->assertSame('cid', $token->getClientId());
+    $this->assertSame('scope1 scope2', $token->getScope());
+  }
   
+  public function testGrantAccessTokenWithGrantUserWithReducedScope() {
+
+    $stub = new OAuth2GrantUserStub;
+    $stub->addClient(new OAuth2Client('cid', 'cpass'));
+    $stub->addUser('foo', 'bar', 'scope1 scope2');
+    $stub->setAllowedGrantTypes(array('authorization_code', 'password'));
+
+    $oauth2 = new OAuth2($stub);
+
+    $response = $oauth2->grantAccessToken(new Request(array(
+      'grant_type' => 'password',
+      'client_id' => 'cid',
+      'client_secret' => 'cpass',
+      'username' => 'foo',
+      'password' => 'bar',
+      'scope' => 'scope1',
+    )));
+
+    $this->assertSame(array(
+      'content-type' => array('application/json;charset=UTF-8'),
+      'cache-control' => array('no-store, private'),
+      'pragma' => array('no-cache'),
+    ), array_diff_key(
+      $response->headers->all(), 
+      array('date' => null)
+    ));
+
+    $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1 scope2"}', $response->getContent());
+
+    $token = $stub->getLastAccessToken();
+    $this->assertSame('cid', $token->getClientId());
+    $this->assertSame('scope1 scope2', $token->getScope());
+  }
+
 	/**
    * Tests OAuth2->grantAccessToken() with client credentials
    * 
@@ -554,6 +682,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
           'redirect_uri' => 'http://www.example.com/?foo=bar',
           'state' => '42',
       )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
     } catch (OAuth2ServerException $e) {
       $this->assertSame('invalid_request', $e->getMessage());
       $this->assertSame('Invalid response type.', $e->getDescription());
@@ -575,6 +704,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
           'state' => '42',
           'response_type' => 'token',
       )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
     } catch (OAuth2ServerException $e) {
       $this->assertSame('unsupported_response_type', $e->getMessage());
     }
@@ -595,6 +725,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
           'state' => '42',
           'response_type' => 'foo',
       )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
     } catch (OAuth2ServerException $e) {
       $this->assertSame('unsupported_response_type', $e->getMessage());
     }
@@ -616,6 +747,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
           'response_type' => 'code',
           'scope' => 'x',
       )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
     } catch (OAuth2ServerException $e) {
       $this->assertSame('invalid_scope', $e->getMessage());
     }
@@ -636,6 +768,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
           'state' => '42',
           'response_type' => 'code',
       )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
     } catch (OAuth2ServerException $e) {
       $this->assertSame('access_denied', $e->getMessage());
       $this->assertSame('The user denied access to your application', $e->getDescription());

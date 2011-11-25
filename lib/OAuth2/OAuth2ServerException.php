@@ -77,6 +77,7 @@ class OAuth2ServerException extends Exception {
     return array(
       'Content-Type' => 'application/json',
       'Cache-Control' => 'no-store',
+      'Pragma' => 'no-cache',
     );
   }
 

@@ -49,6 +49,10 @@ class OAuth2StorageStub implements IOAuth2Storage {
         return $this->accessTokens;
     }
 
+    public function getLastAccessToken() {
+        return end($this->accessTokens);
+    }
+
     public function setAllowedGrantTypes(array $types) {
         $this->allowedGrantTypes = $types;
     }
