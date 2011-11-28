@@ -676,7 +676,7 @@ class OAuth2 {
     $authCode = $this->storage->getAuthCode($input["code"]);
 
     // Check the code exists
-    if ($authCode === NULL || $client->getId() != $authCode->getClientId())
+    if ($authCode === NULL || $client->getPublicId() != $authCode->getClientId())
       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_GRANT, "Code doesn't exist or is invalid for the client");
 
     // Validate the redirect URI

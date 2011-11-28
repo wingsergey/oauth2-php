@@ -16,7 +16,7 @@ class OAuth2StorageStub implements IOAuth2Storage {
     private $allowedGrantTypes = array(OAuth2::GRANT_TYPE_AUTH_CODE);
 
     public function addClient(OAuth2Client $client) {
-        $this->clients[$client->getId()] = $client;
+        $this->clients[$client->getPublicId()] = $client;
     }
 
     public function getClient($client_id) {
@@ -35,7 +35,7 @@ class OAuth2StorageStub implements IOAuth2Storage {
 
     public function createAccessToken($oauth_token, IOAuth2Client $client, $data, $expires, $scope = NULL) {
 
-        $token = new OAuth2AccessToken($client->getId(), $oauth_token, $expires, $scope, $data);
+        $token = new OAuth2AccessToken($client->getPublicId(), $oauth_token, $expires, $scope, $data);
         $this->accessTokens[$oauth_token] = $token;
     }
 
