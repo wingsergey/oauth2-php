@@ -505,23 +505,16 @@ class OAuth2 {
     }
     
     // POST: Get the token from POST data
-    if ($request->request->get(self::TOKEN_PARAM_NAME) !== NULL) {
-      if ($request->getMethod() !== 'POST') {
-        throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'When putting the token in the body, the method must be POST.');
-      }
-      
-      // IETF specifies content-type. NB: Not all webservers populate this _SERVER variable
-      if ($contentType = $request->server->get('CONTENT_TYPE')) {
-        if ($contentType != 'application/x-www-form-urlencoded') {
-          throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'The content type for POST requests must be "application/x-www-form-urlencoded"');
+    // If request method is POST and content type is application/x-www-form-urlencoded
+    if ($request->getMethod() == 'POST') {
+      if (($request->server->get('CONTENT_TYPE') ?: 'application/x-www-form-urlencoded') == 'application/x-www-form-urlencoded') {
+        if ($token = $request->request->get(self::TOKEN_PARAM_NAME)) {
+          if ($removeFromRequest) {
+            $request->request->remove(self::TOKEN_PARAM_NAME);
+          }
+          return $token;
         }
       }
-      
-      $token = $request->request->get(self::TOKEN_PARAM_NAME);
-      if ($removeFromRequest) {
-        $request->request->remove(self::TOKEN_PARAM_NAME);
-      }
-      return $token;
     }
    
     // GET method

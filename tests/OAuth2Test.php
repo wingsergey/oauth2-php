@@ -859,7 +859,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
       '{"error":"invalid_request","error_description":"Only one method may be used to authenticate at a time (Auth header, GET or POST)."}'
     );
 
-    // POST with incorrect Content-Type throws exception
+    // POST with incorrect Content-Type ignores POST vars
     $request = new Request;
     $request->setMethod('POST');
     $request->server->set('CONTENT_TYPE', 'multipart/form-data');
@@ -867,16 +867,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     $data[] = array(
       $request,
       null,
-      null,
-      'OAuth2\OAuth2ServerException',
-      'invalid_request',
-      array(
-        'WWW-Authenticate' => 'Bearer realm="Service", error="invalid_request", error_description="The content type for POST requests must be \"application/x-www-form-urlencoded\""',
-        'Content-Type' => 'application/json',
-        'Cache-Control' => 'no-store',
-        'Pragma' => 'no-cache',
-      ),
-      '{"error":"invalid_request","error_description":"The content type for POST requests must be \"application\/x-www-form-urlencoded\""}'
+      false,
     );
 
     return $data;
