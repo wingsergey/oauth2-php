@@ -830,7 +830,7 @@ class OAuth2 {
     }
     else {
       // This method is not recommended, but is supported by specification
-      return array($inputData['client_id'], $inputData['client_secret']);
+      return array($inputData['client_id'], @$inputData['client_secret']);
     }
   }
 
@@ -1163,8 +1163,8 @@ class OAuth2 {
    */
   protected function getAuthorizationHeader(Request $request) {
     return array(
-      'PHP_AUTH_USER' => $request->getUser(),
-      'PHP_AUTH_PW'   => $request->getPassword(),
+      'PHP_AUTH_USER' => $request->server->get('PHP_AUTH_USER'),
+      'PHP_AUTH_PW'   => $request->server->get('PHP_AUTH_PW'),
     );
   }
 
