@@ -464,64 +464,106 @@ class OAuth2 {
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-08#section-2.1
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-08#section-2.2
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-08#section-2.3
-   * 
-   * We don't want to test this functionality as it relies on superglobals and headers:
    */
   public function getBearerToken(Request $request = NULL, $removeFromRequest = false) {
 
     if ($request === NULL) {
       $request = Request::createFromGlobals();
     }
-    
-    $headers = $request->headers->get('AUTHORIZATION');
 
-    $tokenType = $this->getVariable(self::CONFIG_TOKEN_TYPE);
-    $realm = $this->getVariable(self::CONFIG_WWW_REALM);
-    
-    // Check that exactly one method was used
-    $methodsUsed = 0;
-    $methodsUsed += !empty($headers);
-    $methodsUsed += $request->query->get(self::TOKEN_PARAM_NAME) !== NULL;
-    $methodsUsed += $request->request->get(self::TOKEN_PARAM_NAME) !== NULL;
-    if ( $methodsUsed > 1 ) { 
+    $tokens = array();
+
+    $token = $this->getBearerTokenFromHeaders($request, $removeFromRequest);
+    if ($token !== NULL) {
+      $tokens[] = $token;
+    }
+
+    $token = $this->getBearerTokenFromPost($request, $removeFromRequest);
+    if ($token !== NULL) {
+      $tokens[] = $token;
+    }
+
+    $token = $this->getBearerTokenFromQuery($request, $removeFromRequest);
+    if ($token !== NULL) {
+      $tokens[] = $token;
+    }
+
+    if (count($tokens) > 1) {
+      $realm = $this->getVariable(self::CONFIG_WWW_REALM);
+      $tokenType = $this->getVariable(self::CONFIG_TOKEN_TYPE);
       throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'Only one method may be used to authenticate at a time (Auth header, GET or POST).');
     }
-    elseif ($methodsUsed == 0) {
-        // Don't throw exception here as we may want to allow non-authenticated
-        // requests.
-        return null;
+
+    if (count($tokens) < 1) {
+      // Don't throw exception here as we may want to allow non-authenticated
+      // requests.
+      return NULL;
     }
 
-    // HEADER: Get the access token from the header
-    if (!empty($headers)) {
-      if (!preg_match('/'.self::TOKEN_BEARER_HEADER_NAME.'\s(\S+)/', $headers, $matches)) {
-        throw new OAuth2AuthenticateException(self::HTTP_BAD_REQUEST, $tokenType, $realm, self::ERROR_INVALID_REQUEST, 'Malformed auth header');
-      }
-      
-      if ($removeFromRequest) {
-        $request->headers->remove('AUTHORIZATION');
-      }
-      return $matches[1];
+    return reset($tokens);
+  }
+
+  /**
+   * Get the access token from the header
+   */
+  protected function getBearerTokenFromHeaders(Request $request, $removeFromRequest)
+  {
+    if (!$header = $request->headers->get('AUTHORIZATION')) {
+      return NULL;
     }
-    
-    // POST: Get the token from POST data
-    // If request method is POST and content type is application/x-www-form-urlencoded
-    if ($request->getMethod() == 'POST') {
-      if (($request->server->get('CONTENT_TYPE') ?: 'application/x-www-form-urlencoded') == 'application/x-www-form-urlencoded') {
-        if ($token = $request->request->get(self::TOKEN_PARAM_NAME)) {
-          if ($removeFromRequest) {
-            $request->request->remove(self::TOKEN_PARAM_NAME);
-          }
-          return $token;
-        }
-      }
+
+    if (!preg_match('/'.preg_quote(self::TOKEN_BEARER_HEADER_NAME, '/').'\s(\S+)/', $header, $matches)) {
+      return NULL;
     }
-   
-    // GET method
-    $token = $request->query->get(self::TOKEN_PARAM_NAME);
+
+    $token = $matches[1];
+
+    if ($removeFromRequest) {
+      $request->headers->remove('AUTHORIZATION');
+    }
+
+    return $token;
+  }
+
+  /**
+   * Get the token from POST data
+   */
+  protected function getBearerTokenFromPost(Request $request, $removeFromRequest)
+  {
+    if ($request->getMethod() != 'POST') {
+      return NULL;
+    }
+
+    $contentType = $request->server->get('CONTENT_TYPE');
+
+    if ($contentType && $contentType != 'application/x-www-form-urlencoded') {
+      return NULL;
+    }
+
+    if (!$token = $request->request->get(self::TOKEN_PARAM_NAME)) {
+      return NULL;
+    }
+
+    if ($removeFromRequest) {
+      $request->request->remove(self::TOKEN_PARAM_NAME);
+    }
+
+    return $token;
+  }
+
+  /**
+   * Get the token from the query string
+   */
+  protected function getBearerTokenFromQuery(Request $request, $removeFromRequest)
+  {
+    if (!$token = $request->query->get(self::TOKEN_PARAM_NAME)) {
+      return NULL;
+    }
+
     if ($removeFromRequest) {
       $request->query->remove(self::TOKEN_PARAM_NAME);
     }
+
     return $token;
   }
 

@@ -870,7 +870,35 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
       false,
     );
 
+    // POST with incorrect Content-Type ignores POST vars and takes GET var
+    $request = new Request(array('access_token' => 'foo'));
+    $request->setMethod('POST');
+    $request->server->set('CONTENT_TYPE', 'multipart/form-data');
+    $request->request->set('access_token', 'foo');
+    $data[] = array(
+      $request,
+      'foo',
+      false,
+    );
+
+    // POST with request_token in headers
+    $request = new Request;
+    $request->headers->set('AUTHORIZATION', 'Bearer foo');
+    $request->setMethod('POST');
+    $request->server->set('CONTENT_TYPE', 'application/x-www-form-urlencoded');
+    $data[] = array(
+      $request,
+      'foo',
+      false,
+    );
+
+    // non-Bearer Authorization header
+    $request = new Request(array('access_token' => 'foo'));
+    $request->headers->set('AUTHORIZATION', 'Basic Zm9vOmJhcg==');
+    $data[] = array($request, 'foo');
+
     return $data;
+
   }
 
   // Utility methods
