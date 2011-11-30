@@ -830,7 +830,9 @@ class OAuth2 {
     }
     else {
       // This method is not recommended, but is supported by specification
-      return array($inputData['client_id'], @$inputData['client_secret']);
+      $client_id = $inputData['client_id'];
+      $client_secret = isset($inputData['client_secret']) ? $inputData['client_secret'] : NULL;
+      return array($client_id, $client_secret);
     }
   }
 
