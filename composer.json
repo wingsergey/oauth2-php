@@ -1,5 +1,5 @@
 {
-    "name": "arnaud-lb/oauth2-php",
+    "name": "alb/oauth2-php",
     "type": "library",
     "description": "OAuth2 library",
     "keywords": ["oauth", "oauth2"],
