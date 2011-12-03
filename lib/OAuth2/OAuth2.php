@@ -510,6 +510,8 @@ class OAuth2 {
   {
     $header = null;
     if (!$request->headers->has('AUTHORIZATION')) {
+      // The Authorization header may not be passed to PHP by Apache;
+      // Trying to obtain it through apache_request_headers()
       if (function_exists('apache_request_headers')) {
         $headers = apache_request_headers();
         if (isset($headers['Authorization'])) {
