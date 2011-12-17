@@ -1,9 +1,9 @@
 {
-    "name": "alb/oauth2-php",
+    "name": "friendsofsymfony/oauth2-php",
     "type": "library",
     "description": "OAuth2 library",
     "keywords": ["oauth", "oauth2"],
-    "homepage": "https://github.com/arnaud-lb/oauth2-php",
+    "homepage": "https://github.com/FriendsOfSymfony/oauth2-php",
     "authors": [
         {"name": "Arnaud Le Blanc", "email": "arnaud.lb@gmail.com"}
     ],
