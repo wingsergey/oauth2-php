@@ -1175,33 +1175,41 @@ class OAuth2 {
   }
 
   /**
-   * Generate unique access token.
+   * Generates an unique access token.
    *
-   * Implementing classes may want to override these function to implement
-   * other access token or auth code generation schemes.
+   * Implementing classes may want to override this function to implement
+   * other access token generation schemes.
    *
    * @return
    *   An unique access token.
    *
    * @ingroup oauth2_section_4
+   * @see OAuth2::genAuthCode()
    */
   protected function genAccessToken() {
-    return md5(base64_encode(pack('N6', mt_rand(), mt_rand(), mt_rand(), mt_rand(), microtime(true), uniqid(mt_rand(), true))));
+    $tokenLen = 40;
+    if (file_exists('/dev/urandom')) { // Get 100 bytes of random data
+      $randomData = file_get_contents('/dev/urandom', false, null, 0, 100).uniqid(mt_rand(), true);
+    } else {
+      $randomData = mt_rand().mt_rand().mt_rand().mt_rand().microtime(true).uniqid(mt_rand(), true);
+    }
+    return substr(hash('sha512', $randomData), 0, $tokenLen);
   }
 
   /**
-   * Generate unique auth code.
+   * Generates an unique auth code.
    *
-   * Implementing classes may want to override these function to implement
-   * other access token or auth code generation schemes.
+   * Implementing classes may want to override this function to implement
+   * other auth code generation schemes.
    *
    * @return
    *   An unique auth code.
    *
    * @ingroup oauth2_section_4
+   * @see OAuth2::genAccessToken()
    */
   protected function genAuthCode() {
-    return md5(base64_encode(pack('N6', mt_rand(), mt_rand(), mt_rand(), mt_rand(), microtime(true), uniqid(mt_rand(), true))));
+    return $this->genAccessToken(); // let's reuse the same scheme for token generation
   }
 
   /**
