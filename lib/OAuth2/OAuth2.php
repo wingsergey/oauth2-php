@@ -89,6 +89,7 @@ class OAuth2 {
   const CONFIG_TOKEN_TYPE             = 'token_type';             // Token type to respond with. Currently only "Bearer" supported.
   const CONFIG_WWW_REALM              = 'realm';
   const CONFIG_ENFORCE_INPUT_REDIRECT = 'enforce_redirect';       // Set to true to enforce redirect_uri on input for both authorize and token steps.
+  const CONFIG_ENFORCE_STATE          = 'enforce_state';          // Set to true to enforce state to be passed in authorization (see http://tools.ietf.org/html/draft-ietf-oauth-v2-21#section-10.12)
 
   /**
    * Regex to filter out the client identifier (described in Section 2 of IETF draft).
@@ -356,10 +357,12 @@ class OAuth2 {
       self::CONFIG_TOKEN_TYPE             => self::TOKEN_TYPE_BEARER,
 
       // We have to enforce this only when no URI or more than one URI is
-      // registered; however it's safer to enfore this by default since
+      // registered; however it's safer to enforce this by default since
       // a client may break by just registering more than one URI.
-  self::CONFIG_ENFORCE_INPUT_REDIRECT => TRUE,
-      self::CONFIG_SUPPORTED_SCOPES       => array() // This is expected to be passed in on construction. Scopes can be an aribitrary string.
+      self::CONFIG_ENFORCE_INPUT_REDIRECT => TRUE,
+
+      self::CONFIG_ENFORCE_STATE          => FALSE,
+      self::CONFIG_SUPPORTED_SCOPES       => array(), // This is expected to be passed in on construction. Scopes can be an aribitrary string.
     );
   }
 
@@ -433,7 +436,7 @@ class OAuth2 {
 
     // Get the stored token data (from the implementing subclass)
     $token = $this->storage->getAccessToken($token_param);
-    if ( ! $token) {
+    if (! $token) {
       throw new OAuth2AuthenticateException(self::HTTP_UNAUTHORIZED, $tokenType, $realm, self::ERROR_INVALID_GRANT, 'The access token provided is invalid.', $scope);
     }
 
@@ -627,15 +630,13 @@ class OAuth2 {
    * This would be called from the "/token" endpoint as defined in the spec.
    * Obviously, you can call your endpoint whatever you want.
    *
-   * FIXME: According to section 4.1.3 (http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1.3),
-   * if the "Authorization Request" (auth_code) contained the redirect_uri, then it becomes mandatory when requesting the access token.
-   * This is *not* currently enforced in this library.
-   *
    * @param $inputData - The draft specifies that the parameters should be
    * retrieved from POST, but you can override to whatever method you like.
    * @throws OAuth2ServerException
    *
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-21#section-10.6
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-21#section-4.1.3
    *
    * @ingroup oauth2_section_4
    */
@@ -719,7 +720,7 @@ class OAuth2 {
 
     // Check scope, if provided
     if ($input["scope"] && (!isset($stored["scope"]) || !$this->checkScope($input["scope"], $stored["scope"]))) {
-      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_SCOPE);
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_SCOPE, 'An unsupported scope was requested.');
     }
 
     $token = $this->createAccessToken($client, $stored['data'], $stored['scope']);
@@ -729,7 +730,7 @@ class OAuth2 {
 
   protected function grantAccessTokenAuthCode(IOAuth2Client $client, array $input) {
 
-    if ( !($this->storage instanceof IOAuth2GrantCode) ) {
+    if (!($this->storage instanceof IOAuth2GrantCode)) {
       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_UNSUPPORTED_GRANT_TYPE);
     }
 
@@ -748,10 +749,9 @@ class OAuth2 {
       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_GRANT, "Code doesn't exist or is invalid for the client");
     }
 
-    // Validate the redirect URI
-    $missing = (!$authCode->getRedirectUri() && !$input["redirect_uri"]); // both stored and supplied are missing - we must have at least one!
-    if ($missing || !$this->validateRedirectUri($input["redirect_uri"], $authCode->getRedirectUri())) {
-      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, "The redirect URI is missing or invalid");
+    // Validate the redirect URI. If a redirect URI has been provided on input, it must be validated
+    if ($input["redirect_uri"] && !$this->validateRedirectUri($input["redirect_uri"], $authCode->getRedirectUri())) {
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, "The redirect URI is missing or do not match");
     }
 
     if ($authCode->hasExpired()) {
@@ -765,7 +765,7 @@ class OAuth2 {
   }
 
   protected function grantAccessTokenUserCredentials(IOAuth2Client $client, array $input) {
-    if ( !($this->storage instanceof IOAuth2GrantUser) ) {
+    if (!($this->storage instanceof IOAuth2GrantUser)) {
       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_UNSUPPORTED_GRANT_TYPE);
     }
 
@@ -783,7 +783,7 @@ class OAuth2 {
   }
 
   protected function grantAccessTokenClientCredentials(IOAuth2Client $client, array $input, array $clientCredentials) {
-    if ( !($this->storage instanceof IOAuth2GrantClient) ) {
+    if (!($this->storage instanceof IOAuth2GrantClient)) {
       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_UNSUPPORTED_GRANT_TYPE);
     }
 
@@ -801,7 +801,7 @@ class OAuth2 {
   }
 
   protected function grantAccessTokenRefreshToken(IOAuth2Client $client, array $input) {
-    if ( !($this->storage instanceof IOAuth2RefreshTokens) ) {
+    if (!($this->storage instanceof IOAuth2RefreshTokens)) {
       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_UNSUPPORTED_GRANT_TYPE);
     }
 
@@ -829,7 +829,7 @@ class OAuth2 {
   }
 
   protected function grantAccessTokenExtension(IOAuth2Client $client, array $input) {
-    if ( !($this->storage instanceof IOAuth2GrantExtension) ) {
+    if (!($this->storage instanceof IOAuth2GrantExtension)) {
       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_UNSUPPORTED_GRANT_TYPE);
     }
     $uri = filter_var($input["grant_type"], FILTER_VALIDATE_URL);
@@ -865,11 +865,11 @@ class OAuth2 {
   protected function getClientCredentials(array $inputData, array $authHeaders) {
 
     // Basic Authentication is used
-    if (!empty($authHeaders['PHP_AUTH_USER']) ) {
+    if (!empty($authHeaders['PHP_AUTH_USER'])) {
       return array($authHeaders['PHP_AUTH_USER'], $authHeaders['PHP_AUTH_PW']);
     }
     elseif (empty($inputData['client_id'])) { // No credentials were specified
-       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT);
+       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, 'Client id was not found in the headers or body');
     }
     else {
       // This method is not recommended, but is supported by specification
@@ -883,8 +883,10 @@ class OAuth2 {
 
   /**
    * Pull the authorization request data out of the HTTP request.
-   * The redirect_uri is OPTIONAL as per draft 20. But your implenetation can enforce it
-   * by setting CONFIG_ENFORCE_INPUT_REDIRECT to true.
+   *   - The redirect_uri is OPTIONAL as per draft 20. But your implementation can enforce it
+   *     by setting CONFIG_ENFORCE_INPUT_REDIRECT to true.
+   *   - The state is OPTIONAL but recommended to enforce CSRF. Draft 21 states, however, that
+   *     CSRF protection is MANDATORY. You can enforce this by setting the CONFIG_ENFORCE_STATE to true.
    *
    * @param $inputData - The draft specifies that the parameters should be
    * retrieved from GET, but you can override to whatever method you like.
@@ -894,6 +896,7 @@ class OAuth2 {
    *
    * @throws OAuth2ServerException
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1.1
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-21#section-10.12
    *
    * @ingroup oauth2_section_3
    */
@@ -920,7 +923,7 @@ class OAuth2 {
 
     // Get client details
     $client = $this->storage->getClient($input["client_id"]);
-    if ( ! $client) {
+    if (! $client) {
       throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, 'Unknown client');
     }
 
@@ -946,7 +949,12 @@ class OAuth2 {
 
     // Validate that the requested scope is supported
     if ($input["scope"] && !$this->checkScope($input["scope"], $this->getVariable(self::CONFIG_SUPPORTED_SCOPES))) {
-      throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_INVALID_SCOPE, NULL, $input["state"]);
+      throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_INVALID_SCOPE, 'An unsupported scope was requested.', $input["state"]);
+    }
+
+    // Validate state parameter exists (if configured to enforce this)
+    if ($thiis->getVariable(self::CONFIG_ENFORCE_STATE) && !$input["state"]) {
+      throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_INVALID_REQUEST, "The state parameter is required.");
     }
 
     // Return retrieved client details together with input
@@ -981,7 +989,7 @@ class OAuth2 {
       $redirect_uri = current($client->getRedirectUris());
 
     } else {
-
+      // Only need to validate if redirect_uri is provided on input and stored
       if (!$this->validateRedirectUri($redirect_uri, $client->getRedirectUris())) {
         throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_REDIRECT_URI_MISMATCH, 'The redirect URI provided does not match registered URI(s).');
       }
@@ -1241,7 +1249,7 @@ class OAuth2 {
    */
   protected function validateRedirectUri($inputUri, $storedUris) {
     if (!$inputUri || !$storedUris) {
-      return true; // need both to validate
+      return false; // if either one is missing, assume INVALID
     }
     if (!is_array($storedUris)) {
       $storedUris = array($storedUris);
