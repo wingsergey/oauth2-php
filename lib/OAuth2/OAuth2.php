@@ -788,7 +788,7 @@ class OAuth2 {
     }
 
     if (empty($clientCredentials[1])) {
-      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, 'The client_secret is mandatory for the "client_crendentials" grant type');
+      throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, 'The client_secret is mandatory for the "client_credentials" grant type');
     }
 
     $stored = $this->storage->checkClientCredentialsGrant($client, $clientCreds[1]);
