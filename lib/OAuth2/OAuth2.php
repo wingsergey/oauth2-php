@@ -505,6 +505,9 @@ class OAuth2 {
 
   /**
    * Get the access token from the header
+   *
+   * Old Android version bug (at least with version 2.2)
+   * @see http://code.google.com/p/android/issues/detail?id=6684
    */
   protected function getBearerTokenFromHeaders(Request $request, $removeFromRequest)
   {
@@ -514,6 +517,10 @@ class OAuth2 {
       // Trying to obtain it through apache_request_headers()
       if (function_exists('apache_request_headers')) {
         $headers = apache_request_headers();
+
+        // Server-side fix for bug in old Android versions (a nice side-effect of this fix means we don't care about capitalization for Authorization)
+        $requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
+
         if (isset($headers['Authorization'])) {
           $header = $headers['Authorization'];
         }
