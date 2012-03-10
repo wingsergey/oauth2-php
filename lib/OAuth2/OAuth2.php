@@ -953,7 +953,7 @@ class OAuth2 {
     }
 
     // Validate state parameter exists (if configured to enforce this)
-    if ($thiis->getVariable(self::CONFIG_ENFORCE_STATE) && !$input["state"]) {
+    if ($this->getVariable(self::CONFIG_ENFORCE_STATE) && !$input["state"]) {
       throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_INVALID_REQUEST, "The state parameter is required.");
     }
 
