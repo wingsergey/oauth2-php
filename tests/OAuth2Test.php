@@ -400,7 +400,7 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
         'Cache-Control' => 'no-store',
         'Pragma' => 'no-cache',
       ), $e->getResponseHeaders());
-      $this->assertSame('{"error":"invalid_scope"}', $e->getResponseBody());
+      $this->assertSame('{"error":"invalid_scope","error_description":"An unsupported scope was requested."}', $e->getResponseBody());
     }
   }
   
