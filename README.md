@@ -1,5 +1,9 @@
-OAuth2 Server now implements draft 20 of OAuth 2.0
+OAuth2 Server Implementation
+============================
 
+[![Build Status](https://secure.travis-ci.org/FriendsOfSymfony/oauth2-php.png?branch=master)](http://travis-ci.org/FriendsOfSymfony/oauth2-php)
+
+This library now implements draft 20 of OAuth 2.0.
 The client is still only draft-10.
 
 This version of oauth2-php is a fork of https://github.com/quizlet/oauth2-php with the following changes:
