@@ -18,20 +18,20 @@ interface IOAuth2GrantUser extends IOAuth2Storage {
 	 *
 	 * Check the supplied username and password for validity.
 	 *
-	 * You can also use the $client_id param to do any checks required based
+	 * You can also use the $client param to do any checks required based
 	 * on a client, if you need that.
 	 *
 	 * Required for OAuth2::GRANT_TYPE_USER_CREDENTIALS.
 	 *
 	 * @param IOAuth2Client $client
-	 * Client to be check with.
-	 * @param $username
-	 * Username to be check with.
-	 * @param $password
-	 * Password to be check with.
+	 * Client to check.
+	 * @param string $username
+	 * Username to check.
+	 * @param string $password
+	 * Password to check.
 	 *
 	 * @return
-	 * TRUE if the username and password are valid, and FALSE if it isn't.
+	 * TRUE if the username and password are valid, and FALSE if they aren't.
 	 * Moreover, if the username and password are valid, and you want to
 	 * verify the scope of a user's access, return an associative array
 	 * with the scope values as below. We'll check the scope you provide

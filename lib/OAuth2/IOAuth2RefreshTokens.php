@@ -3,6 +3,7 @@
 namespace OAuth2;
 
 use OAuth2\Model\IOAuth2Client;
+use OAuth2\Model\IOAuth2Token;
 
 /**
  * Storage engines that want to support refresh tokens should
@@ -14,22 +15,17 @@ use OAuth2\Model\IOAuth2Client;
  */
 interface IOAuth2RefreshTokens extends IOAuth2Storage {
   
-  /**
+    /**
 	 * Grant refresh access tokens.
 	 *
 	 * Retrieve the stored data for the given refresh token.
 	 *
 	 * Required for OAuth2::GRANT_TYPE_REFRESH_TOKEN.
 	 *
-	 * @param $refresh_token
-	 * Refresh token to be check with.
+	 * @param string $refresh_token
+	 * Refresh token string.
 	 *
-	 * @return
-	 * An associative array as below, and NULL if the refresh_token is
-	 * invalid:
-	 * - client_id: Stored client identifier.
-	 * - expires: Stored expiration unix timestamp.
-	 * - scope: (optional) Stored scope values in space-separated string.
+	 * @return IOAuth2Token
 	 *
 	 * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-6
 	 *
@@ -48,18 +44,20 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage {
 	 *
 	 * Required for OAuth2::GRANT_TYPE_REFRESH_TOKEN.
 	 *
-	 * @param $refresh_token
-	 * Refresh token to be stored.
-	 * @param $client_id
-	 * Client identifier to be stored.
-	 * @param $expires
-	 * expires to be stored.
-	 * @param $scope
+	 * @param string $refresh_token
+	 * The refresh token string to be stored.
+	 * @param IOAuth2Client $client
+	 * The client associated with this refresh token.
+     * @param mixed $data
+     * Application data associated with the refresh token, such as a User object.
+	 * @param int $expires
+     * The timestamp when the refresh token will expire.
+	 * @param string $scope
 	 * (optional) Scopes to be stored in space-separated string.
 	 *
 	 * @ingroup oauth2_section_6
 	 */
-	public function createRefreshToken($refresh_token, IOAuth2Client $client, $data, $expires, $scope = NULL);
+    public function createRefreshToken($refresh_token, IOAuth2Client $client, $data, $expires, $scope = NULL);
 
 	/**
 	 * Expire a used refresh token.
@@ -72,8 +70,8 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage {
 	 * any sort of success/failure, so you should bail out of the script
 	 * and provide a descriptive fail message.
 	 *
-	 * @param $refresh_token
-	 * Refresh token to be expirse.
+	 * @param string $refresh_token
+	 * The refresh token string to expire.
 	 *
 	 * @ingroup oauth2_section_6
 	 */

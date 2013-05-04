@@ -26,7 +26,7 @@ interface IOAuth2GrantExtension extends IOAuth2Storage {
 	 * Authorization headers
 	 * @return
 	 * FALSE if the authorization is rejected or not support.
-	 * TRUE or an associative array if you wantto verify the scope:
+	 * TRUE or an associative array if you want to verify the scope:
 	 * @code
 	 * return array(
 	 * 'scope' => <stored scope values (space-separated string)>,

@@ -17,12 +17,12 @@ interface IOAuth2GrantClient extends IOAuth2Storage {
 	 * Required for OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS.
 	 *
 	 * @param IOAuth2Client $client
-	 * Client to be check with.
-	 * @param $client_secret
+	 * The client for which to check credentials.
+	 * @param string $client_secret
 	 * (optional) If a secret is required, check that they've given the right one.
 	 *
 	 * @return
-	 * TRUE if the client credentials are valid, and MUST return FALSE if it isn't.
+	 * TRUE if the client credentials are valid, and MUST return FALSE if they aren't.
 	 * When using "client credentials" grant mechanism and you want to
 	 * verify the scope of a user's access, return an associative array
 	 * with the scope values as below. We'll check the scope you provide
