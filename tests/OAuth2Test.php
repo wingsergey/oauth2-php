@@ -849,19 +849,17 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     // GET with remove
     $data[] = array(new Request(array('access_token' => 'foo')), 'foo', true);
 
-    // POST
-    $request = new Request;
-    $request->setMethod('POST');
-    $request->server->set('CONTENT_TYPE', 'application/x-www-form-urlencoded');
-    $request->request->set('access_token', 'foo');
-    $data[] = array($request, 'foo');
+    foreach (array('POST', 'PUT', 'DELETE', 'FOOBAR') as $method) {
 
-    // POST with remove
-    $request = new Request;
-    $request->setMethod('POST');
-    $request->server->set('CONTENT_TYPE', 'application/x-www-form-urlencoded');
-    $request->request->set('access_token', 'foo');
-    $data[] = array($request, 'foo', true);
+        // $method without remove
+        $request = Request::create('/', $method, array(), array(), array(), array('CONTENT_TYPE' => 'application/x-www-form-urlencoded'), 'access_token=foo');
+        $data[] = array($request, 'foo');
+
+        // $method with remove
+        $request = Request::create('/', $method, array(), array(), array(), array('CONTENT_TYPE' => 'application/x-www-form-urlencoded'), 'access_token=foo');
+        $data[] = array($request, 'foo', true);
+    }
+
 
     // No access token provided returns NULL
     $data[] = array(new Request, NULL);

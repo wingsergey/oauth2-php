@@ -485,7 +485,7 @@ class OAuth2 {
       $tokens[] = $token;
     }
 
-    $token = $this->getBearerTokenFromPost($request, $removeFromRequest);
+    $token = $this->getBearerTokenFromFormEncodedBody($request, $removeFromRequest);
     if ($token !== NULL) {
       $tokens[] = $token;
     }
@@ -554,31 +554,50 @@ class OAuth2 {
     return $token;
   }
 
-  /**
-   * Get the token from POST data
-   */
-  protected function getBearerTokenFromPost(Request $request, $removeFromRequest)
-  {
-    if ($request->getMethod() != 'POST') {
-      return NULL;
+    /**
+     * Get the token from url encoded entity-body.
+     *
+     * @link http://tools.ietf.org/html/rfc6750#section-2.2
+     */
+    protected function getBearerTokenFromFormEncodedBody(Request $request, $removeFromRequest)
+    {
+        if (false === $request->server->has('CONTENT_TYPE')) {
+            return null;
+        }
+
+        $contentType = $request->server->get('CONTENT_TYPE');
+
+        if ($contentType !== 'application/x-www-form-urlencoded') {
+            return null;
+        }
+
+        if ('GET' === $request->getMethod()) {
+            return null;
+        }
+
+        // S2 request only decodes form encoded parameters for PUT, DELETE, PATCH. Because we are not so picky, we can't use Request::$request parameter bag...
+        $body = $request->getContent();
+        parse_str($body, $parameters);
+
+        if (false === is_array($parameters)) {
+            return null;
+        }
+
+        if (false === array_key_exists(self::TOKEN_PARAM_NAME, $parameters)) {
+            return null;
+        }
+
+        $token = $parameters[self::TOKEN_PARAM_NAME];
+
+        if ($removeFromRequest) {
+            // S2 request content is immutable, so we can't do nothing more than crippled implementation below...
+            if (true === $request->request->has(self::TOKEN_PARAM_NAME)) {
+                $request->request->remove(self::TOKEN_PARAM_NAME);
+            }
+        }
+
+        return $token;
     }
-
-    $contentType = $request->server->get('CONTENT_TYPE');
-
-    if ($contentType && $contentType != 'application/x-www-form-urlencoded') {
-      return NULL;
-    }
-
-    if (!$token = $request->request->get(self::TOKEN_PARAM_NAME)) {
-      return NULL;
-    }
-
-    if ($removeFromRequest) {
-      $request->request->remove(self::TOKEN_PARAM_NAME);
-    }
-
-    return $token;
-  }
 
   /**
    * Get the token from the query string
