@@ -65,7 +65,7 @@ class OAuth2 {
    *
    * @var string
    */
-  protected $oldRefreshToken;
+  protected $oldRefreshToken = null;
 
   /**
    * Keep track of the used auth code. So we can mark it
@@ -73,7 +73,7 @@ class OAuth2 {
    *
    * @var IOAuth2AuthCode
    */
-  protected $usedAuthCode;
+  protected $usedAuthCode = null;
 
   /**
    * Default values for configuration options.
@@ -1175,14 +1175,14 @@ class OAuth2 {
       $this->storage->createRefreshToken($token["refresh_token"], $client, $data, time() + $this->getVariable(self::CONFIG_REFRESH_LIFETIME), $scope);
 
       // If we've granted a new refresh token, expire the old one
-      if ($this->oldRefreshToken) {
+      if (null !== $this->oldRefreshToken) {
         $this->storage->unsetRefreshToken($this->oldRefreshToken);
         $this->oldRefreshToken = null;
       }
     }
 
     if ($this->storage instanceof IOAuth2GrantCode) {
-      if ($this->usedAuthCode) {
+      if (null !== $this->usedAuthCode) {
         $this->storage->markAuthCodeAsUsed($this->usedAuthCode->getToken());
         $this->usedAuthCode = null;
       }

@@ -3,7 +3,6 @@
 namespace OAuth2;
 
 use OAuth2\Model\IOAuth2Client;
-use OAuth2\Model\IOAuth2AuthCode;
 use OAuth2\Model\OAuth2AuthCode;
 
 class OAuth2GrantCodeStub extends OAuth2StorageStub implements IOAuth2GrantCode {
@@ -29,8 +28,9 @@ class OAuth2GrantCodeStub extends OAuth2StorageStub implements IOAuth2GrantCode 
     }
 
     public function markAuthCodeAsUsed($code) {
-        if(isset($this->authCodes[$code]))
+        if(isset($this->authCodes[$code])) {
             unset($this->authCodes[$code]);
+        }
     }
 
 }
