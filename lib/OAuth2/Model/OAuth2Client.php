@@ -2,40 +2,82 @@
 
 namespace OAuth2\Model;
 
-class OAuth2Client implements IOAuth2Client {
-
+class OAuth2Client implements IOAuth2Client
+{
+    /**
+     * @var string
+     */
     private $id;
+
+    /**
+     * @var array
+     */
     private $redirectUris;
+
+    /**
+     * @var null|string
+     */
     private $secret;
 
-    public function __construct($id, $secret = NULL, array $redirectUris = array()) {
+    /**
+     * @param string $id
+     * @param null   $secret
+     * @param array  $redirectUris
+     */
+    public function __construct($id, $secret = null, array $redirectUris = array())
+    {
         $this->setPublicId($id);
         $this->setSecret($secret);
         $this->setRedirectUris($redirectUris);
     }
 
-    public function setPublicId($id) {
+    /**
+     * @param string $id
+     */
+    public function setPublicId($id)
+    {
         $this->id = $id;
     }
 
-    public function getPublicId() {
+    /**
+     * {@inheritdoc}
+     */
+    public function getPublicId()
+    {
         return $this->id;
     }
 
-    public function setSecret($secret) {
+    /**
+     * @param string $secret
+     */
+    public function setSecret($secret)
+    {
         $this->secret = $secret;
     }
 
-    public function checkSecret($secret) {
-        return $this->secret === NULL || $secret === $this->secret;
+    /**
+     * @param mixed $secret
+     *
+     * @return boolean
+     */
+    public function checkSecret($secret)
+    {
+        return $this->secret === null || $secret === $this->secret;
     }
 
-    public function setRedirectUris(array $redirectUris) {
+    /**
+     * @param array $redirectUris
+     */
+    public function setRedirectUris(array $redirectUris)
+    {
         $this->redirectUris = $redirectUris;
     }
 
-    public function getRedirectUris() {
+    /**
+     * {@inheritdoc}
+     */
+    public function getRedirectUris()
+    {
         return $this->redirectUris;
     }
 }
-
