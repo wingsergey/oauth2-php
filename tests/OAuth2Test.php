@@ -6,9 +6,9 @@ use OAuth2\Model\IOAuth2AccessToken;
 use OAuth2\Model\OAuth2AccessToken;
 use OAuth2\Model\OAuth2AuthCode;
 use OAuth2\Model\OAuth2Client;
-use OAuth2\OAuth2StorageStub;
-use OAuth2\OAuth2GrantCodeStub;
-use OAuth2\OAuth2GrantUserStub;
+use OAuth2\Tests\Fixtures\OAuth2StorageStub;
+use OAuth2\Tests\Fixtures\OAuth2GrantCodeStub;
+use OAuth2\Tests\Fixtures\OAuth2GrantUserStub;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
