@@ -729,6 +729,28 @@ class OAuth2Test extends PHPUnit_Framework_TestCase {
     }
   }
 
+  public function testFinishClientAuthorizationThrowsErrorIfRedirectUriAttemptsPathTraversal() {
+
+    $stub = new OAuth2GrantCodeStub;
+    $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com/callback')));
+    $oauth2 = new OAuth2($stub);
+
+    $data = new \stdClass;
+
+    try {
+      $response = $oauth2->finishClientAuthorization(true, $data, new Request(array(
+        'client_id' => 'blah',
+        'response_type' => 'code',
+        'state' => '42',
+        'redirect_uri' => 'http://a.example.com/callback/../insecure',
+      )));
+      $this->fail('The expected exception OAuth2ServerException was not thrown');
+    } catch (OAuth2ServerException $e) {
+      $this->assertSame('redirect_uri_mismatch', $e->getMessage());
+      $this->assertSame('The redirect URI provided does not match registered URI(s).', $e->getDescription());
+    }
+  }
+
   public function testFinishClientAuthorizationThrowsErrorIfResponseTypeIsMissing() {
 
     $stub = new OAuth2GrantCodeStub;
