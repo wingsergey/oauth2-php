@@ -1304,6 +1304,19 @@ class OAuth2 {
     if (!$inputUri || !$storedUris) {
       return false; // if either one is missing, assume INVALID
     }
+
+    $parsed = parse_url($inputUri);
+    if (!$parsed) {
+        return false;
+    }
+    if (isset($parsed['path'])) {
+        $path = urldecode($parsed['path']);
+        // check for 'path traversal'
+        if (preg_match('#/\.\.?(/|$)#', $path)) {
+            return false;
+        }
+    }
+
     if (!is_array($storedUris)) {
       $storedUris = array($storedUris);
     }
