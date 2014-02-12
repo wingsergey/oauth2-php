@@ -923,9 +923,33 @@ class OAuth2Test extends PHPUnit_Framework_TestCase
                 $request = Request::create('/', $method, array(), array(), array(), array('CONTENT_TYPE' => 'application/x-www-form-urlencoded'), 'access_token=foo');
                 $data[] = array($request, 'foo');
 
+                // $method without remove and charset
+                $request = Request::create('/', $method, array(), array(), array(), array('CONTENT_TYPE' => 'application/x-www-form-urlencoded; charset=utf-8'), 'access_token=foo');
+                $data[] = array($request, 'foo');
+
+                // $method without remove and additional information
+                $request = Request::create('/', $method, array(), array(), array(), array('CONTENT_TYPE' => 'application/x-www-form-urlencoded mode=baz'), 'access_token=foo');
+                $data[] = array($request, 'foo');
+
+                // $method without remove and wrong Content-Type
+                $request = Request::create('/', $method, array(), array(), array(), array('CONTENT_TYPE' => 'application/x-www-form-urlencoded-foo'), 'access_token=foo');
+                $data[] = array($request, null);
+
                 // $method with remove
                 $request = Request::create('/', $method, array(), array(), array(), array('CONTENT_TYPE' => 'application/x-www-form-urlencoded'), 'access_token=foo');
                 $data[] = array($request, 'foo', true);
+
+                // $method with remove and charset
+                $request = Request::create('/', $method, array(), array(), array(), array('CONTENT_TYPE' => 'application/x-www-form-urlencoded; charset=utf-8'), 'access_token=foo');
+                $data[] = array($request, 'foo', true);
+
+                // $method without remove and additional information
+                $request = Request::create('/', $method, array(), array(), array(), array('CONTENT_TYPE' => 'application/x-www-form-urlencoded mode=baz'), 'access_token=foo');
+                $data[] = array($request, 'foo', true);
+
+                // $method with remove and wrong Content-Type
+                $request = Request::create('/', $method, array(), array(), array(), array('CONTENT_TYPE' => 'application/x-www-form-urlencoded-foo'), 'access_token=foo');
+                $data[] = array($request, null, true);
         }
 
         // No access token provided returns null

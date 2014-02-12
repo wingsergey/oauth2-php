@@ -636,7 +636,7 @@ class OAuth2
 
         $contentType = $request->server->get('CONTENT_TYPE');
 
-        if ($contentType !== 'application/x-www-form-urlencoded') {
+        if (!preg_match('/^application\/x-www-form-urlencoded([\s|;].*)?$/', $contentType)) {
             return null;
         }
 
