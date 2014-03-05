@@ -589,11 +589,14 @@ class OAuth2
             if (function_exists('apache_request_headers')) {
                 $headers = apache_request_headers();
 
-                // Server-side fix for bug in old Android versions (a nice side-effect of this fix means we don't care about capitalization for Authorization)
-                $headers = array_combine(array_map('ucwords', array_keys($headers)), array_values($headers));
+                if (is_array($headers)) {
 
-                if (isset($headers['Authorization'])) {
-                    $header = $headers['Authorization'];
+                    // Server-side fix for bug in old Android versions (a nice side-effect of this fix means we don't care about capitalization for Authorization)
+                    $headers = array_combine(array_map('ucwords', array_keys($headers)), array_values($headers));
+
+                    if (isset($headers['Authorization'])) {
+                        $header = $headers['Authorization'];
+                    }
                 }
             }
         } else {
