@@ -907,7 +907,7 @@ class OAuth2
         $stored = $this->storage->checkUserCredentials($client, $input["username"], $input["password"]);
 
         if ($stored === false) {
-            throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_GRANT);
+            throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_GRANT, "Invalid username and password combination");
         }
 
         return $stored;
