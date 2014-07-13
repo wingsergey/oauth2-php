@@ -525,11 +525,69 @@ class OAuth2Test extends PHPUnit_Framework_TestCase
             array('date' => null)
         ));
 
+        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1"}', $response->getContent());
+
+        $token = $stub->getLastAccessToken();
+        $this->assertSame('cid', $token->getClientId());
+        $this->assertSame('scope1', $token->getScope());
+    }
+
+    public function testGrantAccessTokenWithGrantUserWithNoScope()
+    {
+        $stub = new OAuth2GrantUserStub;
+        $stub->addClient(new OAuth2Client('cid', 'cpass'));
+        $stub->addUser('foo', 'bar', 'scope1 scope2');
+        $stub->setAllowedGrantTypes(array('authorization_code', 'password'));
+
+        $oauth2 = new OAuth2($stub);
+
+        $response = $oauth2->grantAccessToken(new Request(array(
+            'grant_type' => 'password',
+            'client_id' => 'cid',
+            'client_secret' => 'cpass',
+            'username' => 'foo',
+            'password' => 'bar',
+        )));
+
+        $this->assertSame(array(
+            'content-type' => array('application/json'),
+            'cache-control' => array('no-store, private'),
+            'pragma' => array('no-cache'),
+        ), array_diff_key(
+            $response->headers->all(),
+            array('date' => null)
+        ));
+
         $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1 scope2"}', $response->getContent());
 
         $token = $stub->getLastAccessToken();
         $this->assertSame('cid', $token->getClientId());
         $this->assertSame('scope1 scope2', $token->getScope());
+    }
+
+    public function testGrantAccessTokenWithGrantUserWithNewScopeThrowsError()
+    {
+        $stub = new OAuth2GrantUserStub;
+        $stub->addClient(new OAuth2Client('cid', 'cpass'));
+        $stub->addUser('foo', 'bar', 'scope1 scope2');
+        $stub->setAllowedGrantTypes(array('authorization_code', 'password'));
+
+        $oauth2 = new OAuth2($stub);
+        
+        try {
+            $response = $oauth2->grantAccessToken(new Request(array(
+                'grant_type' => 'password',
+                'client_id' => 'cid',
+                'client_secret' => 'cpass',
+                'username' => 'foo',
+                'password' => 'bar',
+                'scope' => 'scope3',
+            )));
+            $this->fail('The expected exception OAuth2ServerException was not thrown');
+        } catch (OAuth2ServerException $e) {
+            $this->assertSame('invalid_scope', $e->getMessage());
+            $this->assertSame('An unsupported scope was requested.', $e->getDescription());
+        }
     }
 
         /**
