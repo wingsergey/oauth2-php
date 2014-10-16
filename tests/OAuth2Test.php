@@ -568,6 +568,43 @@ class OAuth2Test extends PHPUnit_Framework_TestCase
     }
 
     /**
+     * Tests OAuth2->grantAccessToken() with extension with limited timeframe
+     */
+    public function testGrantAccessTokenWithGrantExtensionLimitedLifetime()
+    {
+        $clientId = 'cid';
+        $clientSecret = 'csecret';
+        $grantType = 'http://company.com/fb_access_token_time_limited';
+        $fbId = '35';
+        $fbAccessToken = 'da4b9237bacccd_35';
+
+        $stub = new \OAuth2\Tests\Fixtures\OAuth2GrantExtensionLifetimeStub();
+        $stub->addClient(new OAuth2Client($clientId, $clientSecret));
+        $stub->setAllowedGrantTypes(array($grantType));
+        $stub->addFacebookId($fbId);
+        $oauth2 = new OAuth2($stub);
+
+        $response = $oauth2->grantAccessToken(new Request(array(
+            'grant_type' => $grantType,
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'fb_access_token' => $fbAccessToken,
+        )));
+
+        $this->assertSame(array(
+            'content-type' => array('application/json'),
+            'cache-control' => array('no-store, private'),
+            'pragma' => array('no-cache'),
+        ), array_diff_key(
+            $response->headers->all(),
+            array('date' => null)
+        ));
+
+        $this->assertRegExp('{"access_token":"[^"]+","expires_in":86400,"token_type":"bearer"}', $response->getContent());
+    }
+
+
+    /**
      * Tests OAuth2->getAuthorizeParams()
      */
     public function testGetAuthorizeParams()

@@ -826,14 +826,16 @@ class OAuth2
 
         // if no scope provided to check against $input['scope'] then application defaults are set
         // if no data is provided than null is set
-        $stored += array('scope' => $this->getVariable(self::CONFIG_SUPPORTED_SCOPES, null), 'data' => null);
+        $stored += array('scope' => $this->getVariable(self::CONFIG_SUPPORTED_SCOPES, null), 'data' => null,
+                         'access_token_lifetime' => $this->getVariable(self::CONFIG_ACCESS_LIFETIME),
+                         'issue_refresh_token' => true, 'refresh_token_lifetime' => $this->getVariable(self::CONFIG_REFRESH_LIFETIME));
 
         // Check scope, if provided
         if ($input["scope"] && (!isset($stored["scope"]) || !$this->checkScope($input["scope"], $stored["scope"]))) {
             throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_SCOPE, 'An unsupported scope was requested.');
         }
 
-        $token = $this->createAccessToken($client, $stored['data'], $stored['scope']);
+        $token = $this->createAccessToken($client, $stored['data'], $stored['scope'], $stored['access_token_lifetime'], $stored['issue_refresh_token'], $stored['refresh_token_lifetime']);
 
         return new Response(json_encode($token), 200, $this->getJsonHeaders());
     }
@@ -1287,7 +1289,10 @@ class OAuth2
      *
      * @param IOAuth2Client $client
      * @param mixed         $data
-     * @param null          $scope
+     * @param string|null   $scope
+     * @param int|null      $access_token_lifetime How long the access token should live in seconds
+     * @param bool          $issue_refresh_token Issue a refresh tokeniIf true and the storage mechanism supports it
+     * @param int|null      $refresh_token_lifetime How long the refresh token should life in seconds
      *
      * @return array
      *
@@ -1295,11 +1300,11 @@ class OAuth2
      *
      * @ingroup oauth2_section_5
      */
-    public function createAccessToken(IOAuth2Client $client, $data, $scope = null)
+    public function createAccessToken(IOAuth2Client $client, $data, $scope = null, $access_token_lifetime = null, $issue_refresh_token = true, $refresh_token_lifetime = null)
     {
         $token = array(
             "access_token" => $this->genAccessToken(),
-            "expires_in" => $this->getVariable(self::CONFIG_ACCESS_LIFETIME),
+            "expires_in" => ($access_token_lifetime ?: $this->getVariable(self::CONFIG_ACCESS_LIFETIME)),
             "token_type" => $this->getVariable(self::CONFIG_TOKEN_TYPE),
             "scope" => $scope,
         );
@@ -1308,18 +1313,18 @@ class OAuth2
             $token["access_token"],
             $client,
             $data,
-            time() + $this->getVariable(self::CONFIG_ACCESS_LIFETIME),
+            time() + ($access_token_lifetime ?: $this->getVariable(self::CONFIG_ACCESS_LIFETIME)),
             $scope
         );
 
         // Issue a refresh token also, if we support them
-        if ($this->storage instanceof IOAuth2RefreshTokens) {
+        if ($this->storage instanceof IOAuth2RefreshTokens && $issue_refresh_token === true) {
             $token["refresh_token"] = $this->genAccessToken();
             $this->storage->createRefreshToken(
                 $token["refresh_token"],
                 $client,
                 $data,
-                time() + $this->getVariable(self::CONFIG_REFRESH_LIFETIME),
+                time() + ($refresh_token_lifetime ?: $this->getVariable(self::CONFIG_REFRESH_LIFETIME)),
                 $scope
             );
 
