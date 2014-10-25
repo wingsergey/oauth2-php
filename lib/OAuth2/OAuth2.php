@@ -939,6 +939,10 @@ class OAuth2
             throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_GRANT);
         }
 
+        if (!is_array($stored)) {
+            $stored = array();
+        }
+        $stored += array('issue_refresh_token' => false);
         return $stored;
     }
 
@@ -1221,7 +1225,7 @@ class OAuth2
                     $scope
                 );
             } elseif ($params["response_type"] == self::RESPONSE_TYPE_ACCESS_TOKEN) {
-                $result["fragment"] = $this->createAccessToken($params["client"], $data, $scope);
+                $result["fragment"] = $this->createAccessToken($params["client"], $data, $scope, null, false);
             }
         }
 

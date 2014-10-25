@@ -6,6 +6,7 @@ use OAuth2\Model\IOAuth2AccessToken;
 use OAuth2\Model\OAuth2AccessToken;
 use OAuth2\Model\OAuth2AuthCode;
 use OAuth2\Model\OAuth2Client;
+use OAuth2\Tests\Fixtures\OAuth2StorageStub;
 use OAuth2\Tests\Fixtures\OAuth2GrantCodeStub;
 use OAuth2\Tests\Fixtures\OAuth2GrantUserStub;
 use Symfony\Component\HttpFoundation\Request;
@@ -193,6 +194,28 @@ class OAuth2Test extends PHPUnit_Framework_TestCase
         } catch ( OAuth2ServerException $e ) {
             $this->assertNotEquals(OAuth2::ERROR_INVALID_CLIENT, $e->getMessage());
         }
+    }
+
+    /**
+     * Tests OAuth2->grantAccessToken() with successful Client Credentials grant
+     *
+     */
+    public function testGrantAccessTokenWithClientCredentialsSuccess()
+    {
+        $request = new Request(
+            array('grant_type' => OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS, 'client_id' => 'my_little_app', 'client_secret' => 'b')
+        );
+
+        $storage = new OAuth2StorageStub;
+        $storage->addClient(new OAuth2Client('my_little_app', 'b'));
+        $storage->setAllowedGrantTypes(array(OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS));
+
+        $this->fixture = new OAuth2($storage);
+
+        $response = $this->fixture->grantAccessToken($request);
+
+        // Successful token grant will return a JSON encoded token WITHOUT a refresh token:
+        $this->assertRegExp('/^{"access_token":"[^"]+","expires_in":[^"]+,"token_type":"bearer","scope":null}$/', $response->getContent());
     }
 
     /**
