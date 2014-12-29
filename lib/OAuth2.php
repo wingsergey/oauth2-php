@@ -375,6 +375,15 @@ class OAuth2
     const ERROR_INSUFFICIENT_SCOPE = 'invalid_scope';
 
     /**
+     * Access tokens and error message can be transported from the authorization endpoint to the redirect URI
+     * using the query or the fragment component
+     *
+     * @var string
+     */
+    const TRANSPORT_QUERY    = 'query';
+    const TRANSPORT_FRAGMENT = 'fragment';
+
+    /**
      * @}
      */
 
@@ -1111,7 +1120,7 @@ class OAuth2
             }
         } elseif ($input['response_type'] == self::RESPONSE_TYPE_ACCESS_TOKEN) {
             if (!$this->storage instanceof IOAuth2GrantImplicit) {
-                throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_UNSUPPORTED_RESPONSE_TYPE, null, $input["state"]);
+                throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_UNSUPPORTED_RESPONSE_TYPE, null, $input["state"], self::TRANSPORT_FRAGMENT);
             }
         } else {
             throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_UNSUPPORTED_RESPONSE_TYPE, null, $input["state"]);
@@ -1213,22 +1222,22 @@ class OAuth2
         );
 
         $result = array();
-        if ($params["state"]) {
-            $result["query"]["state"] = $params["state"];
-        }
 
         if ($isAuthorized === false) {
-            throw new OAuth2RedirectException($params["redirect_uri"], self::ERROR_USER_DENIED, "The user denied access to your application", $params["state"]);
+            $method = $params["response_type"] == self::RESPONSE_TYPE_AUTH_CODE?self::TRANSPORT_QUERY:self::TRANSPORT_FRAGMENT;
+            throw new OAuth2RedirectException($params["redirect_uri"], self::ERROR_USER_DENIED, "The user denied access to your application", $params["state"], $method);
         } else {
-            if ($params["response_type"] == self::RESPONSE_TYPE_AUTH_CODE) {
-                $result["query"]["code"] = $this->createAuthCode(
+            if ($params["response_type"] === self::RESPONSE_TYPE_AUTH_CODE) {
+                $result[self::TRANSPORT_QUERY]['state'] = $params["state"];
+                $result[self::TRANSPORT_QUERY]["code"] = $this->createAuthCode(
                     $params["client"],
                     $data,
                     $params["redirect_uri"],
                     $scope
                 );
-            } elseif ($params["response_type"] == self::RESPONSE_TYPE_ACCESS_TOKEN) {
-                $result["fragment"] = $this->createAccessToken($params["client"], $data, $scope, null, false);
+            } elseif ($params["response_type"] === self::RESPONSE_TYPE_ACCESS_TOKEN) {
+                $result[self::TRANSPORT_FRAGMENT]['state'] = $params["state"];
+                $result[self::TRANSPORT_FRAGMENT] += $this->createAccessToken($params["client"], $data, $scope, null, false);
             }
         }
 
