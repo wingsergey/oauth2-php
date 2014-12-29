@@ -130,6 +130,7 @@ class OAuth2
     const CONFIG_WWW_REALM = 'realm';
     const CONFIG_ENFORCE_INPUT_REDIRECT = 'enforce_redirect'; // Set to true to enforce redirect_uri on input for both authorize and token steps.
     const CONFIG_ENFORCE_STATE = 'enforce_state'; // Set to true to enforce state to be passed in authorization (see http://tools.ietf.org/html/draft-ietf-oauth-v2-21#section-10.12)
+    const CONFIG_RESPONSE_EXTRA_HEADERS = 'response_extra_headers'; // Add extra headers to the response
 
     /**
      * Regex to filter out the client identifier (described in Section 2 of IETF draft).
@@ -413,6 +414,7 @@ class OAuth2
             self::CONFIG_ENFORCE_STATE => false,
             self::CONFIG_SUPPORTED_SCOPES => null,
             // This is expected to be passed in on construction. Scopes can be an aribitrary string.
+            self::CONFIG_RESPONSE_EXTRA_HEADERS => array(),
         );
     }
 
@@ -1466,11 +1468,13 @@ class OAuth2
      */
     private function getJsonHeaders()
     {
-        return array(
+        $headers = $this->getVariable(self::CONFIG_RESPONSE_EXTRA_HEADERS, array());
+        $headers += array(
             'Content-Type' => 'application/json',
             'Cache-Control' => 'no-store',
             'Pragma' => 'no-cache',
         );
+        return $headers;
     }
 
     /**
