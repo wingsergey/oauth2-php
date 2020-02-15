@@ -892,6 +892,50 @@ class OAuth2Test extends PHPUnit_Framework_TestCase
         }
     }
 
+    public function testFinishClientAuthorizationThrowsErrorIfNoMatchingDomain()
+    {
+        $stub = new OAuth2GrantCodeStub;
+        $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com')));
+        $oauth2 = new OAuth2($stub);
+
+        $data = new \stdClass;
+
+        try {
+            $oauth2->finishClientAuthorization(true, $data, new Request(array(
+                'client_id' => 'blah',
+                'response_type' => 'code',
+                'state' => '42',
+                'redirect_uri' => 'http://a.example.com.test.com/',
+            )));
+            $this->fail('The expected exception OAuth2ServerException was not thrown');
+        } catch (OAuth2ServerException $e) {
+            $this->assertSame('redirect_uri_mismatch', $e->getMessage());
+            $this->assertSame('The redirect URI provided does not match registered URI(s).', $e->getDescription());
+        }
+    }
+
+    public function testFinishClientAuthorizationThrowsErrorIfNoMatchingPort()
+    {
+        $stub = new OAuth2GrantCodeStub;
+        $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com:80')));
+        $oauth2 = new OAuth2($stub);
+
+        $data = new \stdClass;
+
+        try {
+            $oauth2->finishClientAuthorization(true, $data, new Request(array(
+                'client_id' => 'blah',
+                'response_type' => 'code',
+                'state' => '42',
+                'redirect_uri' => 'http://a.example.com:8080/',
+            )));
+            $this->fail('The expected exception OAuth2ServerException was not thrown');
+        } catch (OAuth2ServerException $e) {
+            $this->assertSame('redirect_uri_mismatch', $e->getMessage());
+            $this->assertSame('The redirect URI provided does not match registered URI(s).', $e->getDescription());
+        }
+    }
+
     public function testFinishClientAuthorizationThrowsErrorIfRedirectUriAttemptsPathTraversal()
     {
         $stub = new OAuth2GrantCodeStub;
