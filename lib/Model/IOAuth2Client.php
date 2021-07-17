@@ -2,7 +2,9 @@
 
 namespace OAuth2\Model;
 
-interface IOAuth2Client
+use Symfony\Component\Security\Core\User\UserInterface;
+
+interface IOAuth2Client extends UserInterface
 {
     /**
      * @return string
