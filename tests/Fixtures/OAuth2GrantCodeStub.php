@@ -2,39 +2,48 @@
 
 namespace OAuth2\Tests\Fixtures;
 
+use OAuth2\Model\IOAuth2AuthCode;
 use OAuth2\Model\IOAuth2Client;
 use OAuth2\Model\OAuth2AuthCode;
 use OAuth2\IOAuth2GrantCode;
-use OAuth2\Tests\Fixtures\OAuth2StorageStub;
 
 class OAuth2GrantCodeStub extends OAuth2StorageStub implements IOAuth2GrantCode
 {
-    private $authCodes;
+    private array $authCodes;
 
-    public function getAuthCode($code)
+    public function getAuthCode(string $code): ?IOAuth2AuthCode
     {
         if (isset($this->authCodes[$code])) {
             return $this->authCodes[$code];
         }
+        return null;
     }
 
-    public function getAuthCodes()
+    public function getAuthCodes(): array
     {
         return $this->authCodes;
     }
 
-    public function getLastAuthCode()
+    public function getLastAuthCode(): IOAuth2AuthCode
     {
         return end($this->authCodes);
     }
 
-    public function createAuthCode($code, IOAuth2Client $client, $data, $redirectUri, $expires, $scope = null)
-    {
+    public function createAuthCode(
+        string $code,
+        IOAuth2Client $client,
+        mixed $data,
+        string $redirectUri,
+        int $expires,
+        string $scope = null
+    ): IOAuth2AuthCode {
         $token = new OAuth2AuthCode($client->getPublicId(), $code, $expires, $scope, $data, $redirectUri);
         $this->authCodes[$code] = $token;
+        
+        return $token;
     }
 
-    public function markAuthCodeAsUsed($code)
+    public function markAuthCodeAsUsed(string $code): void
     {
         if (isset($this->authCodes[$code])) {
             unset($this->authCodes[$code]);

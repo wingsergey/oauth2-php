@@ -2,6 +2,9 @@
 
 namespace OAuth2\Tests\Fixtures;
 
+use FOS\OAuthServerBundle\Model\TokenInterface;
+use OAuth2\Model\IOAuth2AccessToken;
+use OAuth2\Model\IOAuth2RefreshToken;
 use OAuth2\OAuth2;
 use OAuth2\Model\IOAuth2Client;
 use OAuth2\Model\OAuth2AccessToken;
@@ -15,87 +18,103 @@ use OAuth2\IOAuth2RefreshTokens;
  */
 class OAuth2StorageStub implements IOAuth2Storage, IOAuth2GrantClient, IOAuth2RefreshTokens
 {
-    private $clients = array();
-    private $accessTokens = array();
-    private $refreshTokens = array();
-    private $allowedGrantTypes = array(OAuth2::GRANT_TYPE_AUTH_CODE);
+    private array $clients = array();
+    private array $accessTokens = array();
+    private array $refreshTokens = array();
+    private array $allowedGrantTypes = array(OAuth2::GRANT_TYPE_AUTH_CODE);
 
-    public function addClient(IOAuth2Client $client)
+    public function addClient(IOAuth2Client $client): void
     {
         $this->clients[$client->getPublicId()] = $client;
     }
 
-    public function getClient($client_id)
+    public function getClient(string $clientId): ?IOAuth2Client
     {
-        if (isset($this->clients[$client_id])) {
-            return $this->clients[$client_id];
+        if (isset($this->clients[$clientId])) {
+            return $this->clients[$clientId];
         }
+        return null;
     }
 
-    public function getClients()
+    public function getClients(): array
     {
         return $this->clients;
     }
 
-    public function checkClientCredentials(IOAuth2Client $client, $clientSecret = null)
+    public function checkClientCredentials(IOAuth2Client $client, string $clientSecret = null): bool
     {
         return $client->checkSecret($clientSecret);
     }
 
-    public function checkClientCredentialsGrant(IOAuth2Client $client, $clientSecret)
+    public function checkClientCredentialsGrant(IOAuth2Client $client, string $clientSecret): bool
     {
         return $this->checkClientCredentials($client, $clientSecret);
     }
 
-    public function createAccessToken($oauthToken, IOAuth2Client $client, $data, $expires, $scope = null)
-    {
-        $token = new OAuth2AccessToken($client->getPublicId(), $oauthToken, $expires, $scope, $data);
+    public function createAccessToken(
+        string $oauth_token,
+        IOAuth2Client $client,
+        mixed $data,
+        int $expires,
+        string $scope = null
+    ): IOAuth2AccessToken {
+        $token = new OAuth2AccessToken($client->getPublicId(), $oauth_token, $expires, $scope, $data);
 
-        $this->accessTokens[$oauthToken] = $token;
+        $this->accessTokens[$oauth_token] = $token;
+
+        return $token;
     }
 
-    public function getAccessToken($oauth_token)
+    public function getAccessToken(string $oauthToken): ?IOAuth2AccessToken
     {
-        if (isset($this->accessTokens[$oauth_token])) {
-            return $this->accessTokens[$oauth_token];
+        if (isset($this->accessTokens[$oauthToken])) {
+            return $this->accessTokens[$oauthToken];
         }
+        return null;
     }
 
-    public function getAccessTokens()
+    public function getAccessTokens(): array
     {
         return $this->accessTokens;
     }
 
-    public function getLastAccessToken()
+    public function getLastAccessToken(): IOAuth2AccessToken
     {
         return end($this->accessTokens);
     }
 
-    public function setAllowedGrantTypes(array $types)
+    public function setAllowedGrantTypes(array $types): void
     {
         $this->allowedGrantTypes = $types;
     }
 
-    public function checkRestrictedGrantType(IOAuth2Client $client, $grantType)
+    public function checkRestrictedGrantType(IOAuth2Client $client, string $grantType): bool
     {
         return in_array($grantType, $this->allowedGrantTypes);
     }
 
-    public function getRefreshToken($refreshToken)
+    public function getRefreshToken(string $refreshToken): IOAuth2RefreshToken
     {
         if (isset($this->refreshTokens[$refreshToken])) {
             return $this->refreshTokens[$refreshToken];
         }
     }
 
-    public function createRefreshToken($refreshToken, IOAuth2Client $client, $data, $expires, $scope = null)
-    {
+    public function createRefreshToken(
+        string $refreshToken,
+        IOAuth2Client $client,
+        mixed $data,
+        int $expires,
+        string $scope = null
+    ): IOAuth2RefreshToken {
         $token = new OAuth2RefreshToken($client->getPublicId(), $refreshToken, $expires, $scope, $data);
 
         $this->refreshToken[$refreshToken] = $token;
+        
+        return $token;
     }
 
-    public function unsetRefreshToken($refreshToken)
+    public function unsetRefreshToken(string $refreshToken): void
     {
         if (isset($this->refreshTokens[$refreshToken])) {
             unset($this->refreshTokens[$refreshToken]);

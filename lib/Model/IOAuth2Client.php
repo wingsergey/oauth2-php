@@ -7,10 +7,10 @@ interface IOAuth2Client
     /**
      * @return string
      */
-    public function getPublicId();
+    public function getPublicId(): string;
 
     /**
      * @return array
      */
-    public function getRedirectUris();
+    public function getRedirectUris(): array;
 }

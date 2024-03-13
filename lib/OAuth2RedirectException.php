@@ -15,30 +15,31 @@ class OAuth2RedirectException extends OAuth2ServerException
 {
     /**
      * Redirect URI
-     *
-     * @var string
      */
-    protected $redirectUri;
+    protected string $redirectUri;
 
     /**
      * Parameters are added into 'query' or 'fragment'
-     *
-     * @var string
      */
-    protected $method;
+    protected string $method;
 
     /**
      * @param string $redirectUri      An absolute URI to which the authorization server will redirect the user-agent to when the end-user authorization step is completed.
      * @param string $error            A single error code as described in Section 4.1.2.1
-     * @param string $errorDescription (optional) A human-readable text providing additional information, used to assist in the understanding and resolution of the error occurred.
-     * @param string $state            (optional) REQUIRED if the "state" parameter was present in the client authorization request. Set to the exact value received from the client.
+     * @param string|null $errorDescription (optional) A human-readable text providing additional information, used to assist in the understanding and resolution of the error occurred.
+     * @param string|null $state            (optional) REQUIRED if the "state" parameter was present in the client authorization request. Set to the exact value received from the client.
      *
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1.2.1
      *
      * @ingroup oauth2_error
      */
-    public function __construct($redirectUri, $error, $errorDescription = null, $state = null, $method = OAuth2::TRANSPORT_QUERY)
-    {
+    public function __construct(
+        string $redirectUri,
+        string $error,
+        ?string $errorDescription = null,
+        ?string $state = null,
+        string $method = OAuth2::TRANSPORT_QUERY
+    ) {
         parent::__construct(Response::HTTP_FOUND, $error, $errorDescription);
 
         $this->method = $method;
@@ -55,7 +56,7 @@ class OAuth2RedirectException extends OAuth2ServerException
      *
      * @ingroup oauth2_section_4
      */
-    public function getResponseHeaders()
+    public function getResponseHeaders(): array
     {
         $params = array($this->method => $this->errorData);
 
@@ -74,7 +75,7 @@ class OAuth2RedirectException extends OAuth2ServerException
      *
      * @ingroup oauth2_section_4
      */
-    protected function buildUri($uri, $params)
+    protected function buildUri(string $uri, array $params): string
     {
         $parse_url = parse_url($uri);
 

@@ -4,40 +4,23 @@ namespace OAuth2\Model;
 
 class OAuth2Token implements IOAuth2Token
 {
-    /**
-     * @var string
-     */
-    private $clientId;
+    private ?string $clientId;
 
-    /**
-     * @var string
-     */
-    private $token;
+    private ?string $token;
 
-    /**
-     * @var null|integer
-     */
-    private $expiresAt;
+    private ?int $expiresAt;
 
-    /**
-     * @var null|string
-     */
-    private $scope;
+    private ?string $scope;
 
-    /**
-     * @var mixed
-     */
-    private $data;
+    private mixed $data;
 
-    /**
-     * @param string       $clientId
-     * @param string       $token
-     * @param null|integer $expiresAt
-     * @param null|string  $scope
-     * @param mixed   $data
-     */
-    public function __construct($clientId, $token, $expiresAt = null, $scope = null, $data = null)
-    {
+    public function __construct(
+        ?string $clientId,
+        ?string $token,
+        ?int $expiresAt = null,
+        ?string $scope = null,
+        mixed $data = null,
+    ) {
         $this->setClientId($clientId);
         $this->setToken($token);
         $this->setExpiresAt($expiresAt);
@@ -45,94 +28,61 @@ class OAuth2Token implements IOAuth2Token
         $this->setData($data);
     }
 
-    /**
-     * @param string $id
-     */
-    public function setClientId($id)
+    public function setClientId(?string $id): void
     {
         $this->clientId = $id;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getClientId()
+    public function getClientId(): ?string
     {
         return $this->clientId;
     }
 
-    /**
-     * @param null|integer $timestamp
-     */
-    public function setExpiresAt($timestamp)
+    public function setExpiresAt(?int $timestamp): void
     {
         $this->expiresAt = $timestamp;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getExpiresIn()
+    public function getExpiresIn(): int
     {
         if ($this->expiresAt) {
             return $this->expiresAt - time();
-        } else {
-            return PHP_INT_MAX;
         }
+
+        return PHP_INT_MAX;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function hasExpired()
+    public function hasExpired(): bool
     {
         return time() > $this->expiresAt;
     }
 
-    /**
-     * @param string $token
-     */
-    public function setToken($token)
+    public function setToken(?string $token): void
     {
         $this->token = $token;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getToken()
+    public function getToken(): ?string
     {
         return $this->token;
     }
 
-    /**
-     * @param null|string $scope
-     */
-    public function setScope($scope)
+    public function setScope(?string $scope): void
     {
         $this->scope = $scope;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getScope()
+    public function getScope(): string|null
     {
         return $this->scope;
     }
 
-    /**
-     * @param null|string $data
-     */
-    public function setData($data)
+    public function setData(mixed $data): void
     {
         $this->data = $data;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getData()
+    public function getData(): mixed
     {
         return $this->data;
     }

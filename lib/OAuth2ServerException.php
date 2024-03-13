@@ -9,22 +9,16 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class OAuth2ServerException extends \Exception
 {
-    /**
-     * @var string
-     */
-    protected $httpCode;
+    protected string $httpCode;
 
-    /**
-     * @var array
-     */
-    protected $errorData = array();
+    protected array $errorData = array();
 
     /**
      * @param string $httpStatusCode   HTTP status code message as predefined.
      * @param string $error            A single error code.
-     * @param string $errorDescription (optional) A human-readable text providing additional information, used to assist in the understanding and resolution of the error occurred.
+     * @param string|null $errorDescription (optional) A human-readable text providing additional information, used to assist in the understanding and resolution of the error occurred.
      */
-    public function __construct($httpStatusCode, $error, $errorDescription = null)
+    public function __construct(string $httpStatusCode, string $error, ?string $errorDescription = null)
     {
         parent::__construct($error);
 
@@ -36,20 +30,16 @@ class OAuth2ServerException extends \Exception
 
     /**
      * Get error description
-     *
-     * @return string
      */
-    public function getDescription()
+    public function getDescription(): string
     {
         return $this->errorData['error_description'];
     }
 
     /**
      * Get HTTP code
-     *
-     * @return string
      */
-    public function getHttpCode()
+    public function getHttpCode(): string
     {
         return $this->httpCode;
     }
@@ -64,7 +54,7 @@ class OAuth2ServerException extends \Exception
      *
      * @ingroup oauth2_error
      */
-    public function getHttpResponse()
+    public function getHttpResponse(): Response
     {
         return new Response(
             $this->getResponseBody(),
@@ -82,7 +72,7 @@ class OAuth2ServerException extends \Exception
      *
      * @ingroup oauth2_error
      */
-    public function getResponseHeaders()
+    public function getResponseHeaders(): array
     {
         return array(
             'Content-Type' => 'application/json',
@@ -93,10 +83,8 @@ class OAuth2ServerException extends \Exception
 
     /**
      * Get response body as JSON string
-     *
-     * @return string
      */
-    public function getResponseBody()
+    public function getResponseBody(): string
     {
         return json_encode($this->errorData);
     }
@@ -104,7 +92,7 @@ class OAuth2ServerException extends \Exception
     /**
      * Outputs response
      */
-    public function sendHttpResponse()
+    public function sendHttpResponse(): void
     {
         $this->getHttpResponse()->send();
         exit; // TODO: refactor out this piece of code
@@ -113,7 +101,7 @@ class OAuth2ServerException extends \Exception
     /**
      * @see \Exception::__toString()
      */
-    public function __toString()
+    public function __toString(): string
     {
         return $this->getResponseBody();
     }

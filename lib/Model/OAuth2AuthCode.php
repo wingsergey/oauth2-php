@@ -7,7 +7,7 @@ class OAuth2AuthCode extends OAuth2Token implements IOAuth2AuthCode
     /**
      * @var null|string
      */
-    private $redirectUri;
+    private ?string $redirectUri;
 
     /**
      * @param string       $clientId
@@ -31,10 +31,7 @@ class OAuth2AuthCode extends OAuth2Token implements IOAuth2AuthCode
         $this->redirectUri = $uri;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getRedirectUri()
+    public function getRedirectUri(): string
     {
         return $this->redirectUri;
     }

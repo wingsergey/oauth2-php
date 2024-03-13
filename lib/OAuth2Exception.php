@@ -14,17 +14,15 @@ class OAuth2Exception extends \Exception
 {
     /**
      * The result from the API server that represents the exception information.
-     *
-     * @var array
      */
-    protected $result;
+    protected array $result;
 
     /**
      * Make a new API Exception with the given result.
      *
      * @param array $result The result from the API server.
      */
-    public function __construct($result)
+    public function __construct(array $result)
     {
         $this->result = $result;
 
@@ -48,7 +46,7 @@ class OAuth2Exception extends \Exception
      *
      * @return array The result from the API server.
      */
-    public function getResult()
+    public function getResult(): array
     {
         return $this->result;
     }
@@ -59,7 +57,7 @@ class OAuth2Exception extends \Exception
      *
      * @return string The type for the error.
      */
-    public function getType()
+    public function getType(): string
     {
         if (isset($this->result['error'])) {
             $message = $this->result['error'];
@@ -77,7 +75,7 @@ class OAuth2Exception extends \Exception
      *
      * @return string The string representation of the error.
      */
-    public function __toString()
+    public function __toString(): string
     {
         $str = $this->getType() . ': ';
         if ($this->code != 0) {

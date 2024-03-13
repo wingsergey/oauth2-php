@@ -3,7 +3,7 @@
 namespace OAuth2;
 
 use OAuth2\Model\IOAuth2Client;
-use OAuth2\Model\IOAuth2Token;
+use OAuth2\Model\IOAuth2RefreshToken;
 
 /**
  * Storage engines that want to support refresh tokens should implement this interface.
@@ -23,13 +23,13 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage
      *
      * @param string $refreshToken Refresh token string.
      *
-     * @return IOAuth2Token
+     * @return IOAuth2RefreshToken
      *
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-6
      *
      * @ingroup oauth2_section_6
      */
-    public function getRefreshToken($refreshToken);
+    public function getRefreshToken(string $refreshToken): IOAuth2RefreshToken;
 
     /**
      * Take the provided refresh token values and store them somewhere.
@@ -48,7 +48,13 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage
      *
      * @ingroup oauth2_section_6
      */
-    public function createRefreshToken($refreshToken, IOAuth2Client $client, $data, $expires, $scope = null);
+    public function createRefreshToken(
+        string $refreshToken,
+        IOAuth2Client $client,
+        mixed $data,
+        int $expires,
+        string $scope = null
+    ): IOAuth2RefreshToken;
 
     /**
      * Expire a used refresh token.
@@ -62,5 +68,5 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage
      *
      * @ingroup oauth2_section_6
      */
-    public function unsetRefreshToken($refreshToken);
+    public function unsetRefreshToken(string $refreshToken): void;
 }

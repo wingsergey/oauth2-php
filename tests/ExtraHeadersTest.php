@@ -10,7 +10,7 @@ use OAuth2\Tests\Fixtures\OAuth2GrantUserStub;
  */
 class ExtraHeadersTest extends \PHPUnit\Framework\TestCase
 {
-    public function testErrorResponseContainsExtraHeaders()
+    public function testErrorResponseContainsExtraHeaders(): void
     {
         $config = array(
             OAuth2::CONFIG_RESPONSE_EXTRA_HEADERS => array(

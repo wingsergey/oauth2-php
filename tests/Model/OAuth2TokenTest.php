@@ -3,10 +3,11 @@
 namespace OAuth2\Tests\Model;
 
 use OAuth2\Model\OAuth2Token;
+use PHPUnit\Framework\TestCase;
 
-class OAuth2TokenTest extends \PHPUnit\Framework\TestCase
+class OAuth2TokenTest extends TestCase
 {
-    public function testConstruct()
+    public function testConstruct(): void
     {
         $expiresAt = time() + 42;
         $data = new \stdClass;
@@ -23,14 +24,14 @@ class OAuth2TokenTest extends \PHPUnit\Framework\TestCase
     }
 
     /** @dataProvider getTestExpiresData */
-    public function testExpires($offset, $expired)
+    public function testExpires(int $offset, bool $expired): void
     {
         $token = new OAuth2Token('foo', 'bar', time() + $offset);
 
         $this->assertSame($expired, $token->hasExpired());
     }
 
-    public function getTestExpiresData()
+    public function getTestExpiresData(): array
     {
         return array(
             array(-10, true),

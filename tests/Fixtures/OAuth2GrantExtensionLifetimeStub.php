@@ -12,7 +12,7 @@ class OAuth2GrantExtensionLifetimeStub extends OAuth2StorageStub implements IOAu
 {
     protected $facebookIds = array();
 
-    public function checkGrantExtension(IOAuth2Client $client, $uri, array $inputData, array $authHeaders)
+    public function checkGrantExtension(IOAuth2Client $client, string $uri, array $inputData, array $authHeaders): bool|array
     {
         if ('http://company.com/fb_access_token_time_limited' !== $uri) {
             throw new OAuth2ServerException(Response::HTTP_BAD_REQUEST, OAuth2::ERROR_UNSUPPORTED_GRANT_TYPE);

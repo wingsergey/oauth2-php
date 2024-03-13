@@ -16,21 +16,17 @@ use Symfony\Component\HttpFoundation\Request;
  */
 class OAuth2Test extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * @var OAuth2
-     */
-    private $fixture;
+    private OAuth2 $fixture;
 
     /**
      * The actual token ID is irrelevant, so choose one:
-     * @var string
      */
-    private $tokenId = 'my_token';
+    private string $tokenId = 'my_token';
 
     /**
      * Tests OAuth2->verifyAccessToken() with a missing token
      */
-    public function testVerifyAccessTokenWithNoParam()
+    public function testVerifyAccessTokenWithNoParam(): void
     {
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $this->fixture = new OAuth2($mockStorage);
@@ -43,13 +39,13 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
     /**
      * Tests OAuth2->verifyAccessToken() with a invalid token
      */
-    public function testVerifyAccessTokenInvalidToken()
+    public function testVerifyAccessTokenInvalidToken(): void
     {
         // Set up the mock storage to say this token does not exist
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $mockStorage->expects($this->once())
             ->method('getAccessToken')
-            ->will($this->returnValue(false));
+            ->willReturn(null);
 
         $this->fixture = new OAuth2($mockStorage);
 
@@ -63,13 +59,13 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * @dataProvider generateMalformedTokens
      */
-    public function testVerifyAccessTokenMalformedToken(IOAuth2AccessToken $token)
+    public function testVerifyAccessTokenMalformedToken(IOAuth2AccessToken $token): void
     {
         // Set up the mock storage to say this token does not exist
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $mockStorage->expects($this->once())
             ->method('getAccessToken')
-            ->will($this->returnValue($token));
+            ->willReturn($token);
 
         $this->fixture = new OAuth2($mockStorage);
 
@@ -83,13 +79,13 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * @dataProvider generateExpiryTokens
      */
-    public function testVerifyAccessTokenCheckExpiry(IOAuth2AccessToken $token, $expectedToPass)
+    public function testVerifyAccessTokenCheckExpiry(IOAuth2AccessToken $token, bool $expectedToPass): void
     {
         // Set up the mock storage to say this token does not exist
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $mockStorage->expects($this->once())
             ->method('getAccessToken')
-            ->will($this->returnValue($token));
+            ->willReturn($token);
 
         $this->fixture = new OAuth2($mockStorage);
 
@@ -111,13 +107,13 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * @dataProvider generateScopes
      */
-    public function testVerifyAccessTokenCheckScope($scopeRequired, IOAuth2AccessToken $token, $expectedToPass)
+    public function testVerifyAccessTokenCheckScope(?string $scopeRequired, IOAuth2AccessToken $token, bool $expectedToPass): void
     {
         // Set up the mock storage to say this token does not exist
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $mockStorage->expects($this->once())
             ->method('getAccessToken')
-            ->will($this->returnValue($token));
+            ->willReturn($token);
 
         $this->fixture = new OAuth2($mockStorage);
 
@@ -137,7 +133,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * @dataProvider generateEmptyDataForGrant
      */
-    public function testGrantAccessTokenMissingData($request)
+    public function testGrantAccessTokenMissingData(Request $request): void
     {
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $this->fixture = new OAuth2($mockStorage);
@@ -151,15 +147,15 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * Tests the different ways client credentials can be provided.
      */
-    public function testGrantAccessTokenCheckClientCredentials()
+    public function testGrantAccessTokenCheckClientCredentials(): void
     {
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnValue(new OAuth2Client('dev-abc')));
+            ->willReturn(new OAuth2Client('dev-abc'));
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
         $this->fixture = new OAuth2($mockStorage);
 
         $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE);
@@ -200,7 +196,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      * Tests OAuth2->grantAccessToken() with successful Client Credentials grant
      *
      */
-    public function testGrantAccessTokenWithClientCredentialsSuccess()
+    public function testGrantAccessTokenWithClientCredentialsSuccess(): void
     {
         $request = new Request(
             array('grant_type' => OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS, 'client_id' => 'my_little_app', 'client_secret' => 'b')
@@ -215,22 +211,22 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $response = $this->fixture->grantAccessToken($request);
 
         // Successful token grant will return a JSON encoded token WITHOUT a refresh token:
-        $this->assertRegExp('/^{"access_token":"[^"]+","expires_in":[^"]+,"token_type":"bearer","scope":null}$/', $response->getContent());
+        $this->assertMatchesRegularExpression('/^{"access_token":"[^"]+","expires_in":[^"]+,"token_type":"bearer","scope":null}$/', $response->getContent());
     }
 
     /**
      * Tests OAuth2->grantAccessToken() with Auth code grant
      *
      */
-    public function testGrantAccessTokenWithGrantAuthCodeMandatoryParams()
+    public function testGrantAccessTokenWithGrantAuthCodeMandatoryParams(): void
     {
         $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnValue(new OAuth2Client('dev-abc')));
+            ->willReturn(new OAuth2Client('dev-abc'));
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
 
         $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'a', 'client_secret' => 'b');
 
@@ -258,15 +254,15 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      * Tests OAuth2->grantAccessToken() with Auth code grant
      *
      */
-    public function testGrantAccessTokenWithGrantAuthCodeNoToken()
+    public function testGrantAccessTokenWithGrantAuthCodeNoToken(): void
     {
         $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnValue(new OAuth2Client('dev-abc')));
+            ->willReturn(new OAuth2Client('dev-abc'));
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
 
         $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'a', 'client_secret' => 'b', 'redirect_uri' => 'foo', 'code'=> 'foo');
 
@@ -276,7 +272,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             $request = $this->createRequest($inputData);
             $this->fixture->grantAccessToken($request);
             $this->fail('The expected exception OAuth2ServerException was not thrown');
-        } catch ( OAuth2ServerException $e ) {
+        } catch (OAuth2ServerException $e) {
             $this->assertEquals(OAuth2::ERROR_INVALID_GRANT, $e->getMessage());
         }
     }
@@ -285,7 +281,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      * Tests OAuth2->grantAccessToken() with checks the redirect URI
      *
      */
-    public function testGrantAccessTokenWithGrantAuthCodeRedirectChecked()
+    public function testGrantAccessTokenWithGrantAuthCodeRedirectChecked(): void
     {
         $inputData = array('redirect_uri' => 'http://www.crossdomain.com/my/subdir', 'grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'my_little_app', 'client_secret' => 'b', 'code'=> 'foo');
         $storedToken = new OAuth2AuthCode('my_little_app', '', time() + 60, null, null, 'http://www.example.com');
@@ -293,13 +289,13 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createBaseMock('Oauth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnValue(new OAuth2Client('my_little_app')));
+            ->willReturn(new OAuth2Client('my_little_app'));
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
         $mockStorage->expects($this->any())
             ->method('getAuthCode')
-            ->will($this->returnValue($storedToken));
+            ->willReturn($storedToken);
 
         // Ensure that the redirect_uri is checked
         try {
@@ -317,7 +313,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      * Tests OAuth2->grantAccessToken() with checks the client ID is matched
      *
      */
-    public function testGrantAccessTokenWithGrantAuthCodeClientIdChecked()
+    public function testGrantAccessTokenWithGrantAuthCodeClientIdChecked(): void
     {
         $inputData = array('client_id' => 'another_app', 'grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'redirect_uri' => 'http://www.example.com/my/subdir', 'client_secret' => 'b', 'code'=> 'foo');
         $storedToken = new OAuth2AuthCode('my_little_app', '', time() + 60, null, null, 'http://www.example.com');
@@ -325,13 +321,13 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnValue(new OAuth2Client('x')));
+            ->willReturn(new OAuth2Client('x'));
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
         $mockStorage->expects($this->any())
             ->method('getAuthCode')
-            ->will($this->returnValue($storedToken));
+            ->willReturn($storedToken);
 
         // Ensure the client ID is checked
         try {
@@ -349,7 +345,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      * Tests OAuth2->grantAccessToken() with same Auth code grant
      *
      */
-    public function testGrantAccessTokenWithSameGrantAuthCode()
+    public function testGrantAccessTokenWithSameGrantAuthCode(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
@@ -386,7 +382,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * @doesNotPerformAssertions
      */
-    public function testGrantAccessTokenWithGrantImplicit()
+    public function testGrantAccessTokenWithGrantImplicit(): void
     {
         $this->markTestIncomplete ( "grantAccessToken test not implemented" );
 
@@ -397,7 +393,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      * Tests OAuth2->grantAccessToken() with user credentials
      *
      */
-    public function testGrantAccessTokenWithGrantUser()
+    public function testGrantAccessTokenWithGrantUser(): void
     {
         $data = new \stdClass;
 
@@ -425,7 +421,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":null}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":null}', $response->getContent());
 
         $token = $stub->getLastAccessToken();
         $this->assertSame('cid', $token->getClientId());
@@ -433,7 +429,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $this->assertNull($token->getScope());
     }
 
-    public function testGrantAccessTokenWithGrantUserWithAddScopeThrowsError()
+    public function testGrantAccessTokenWithGrantUserWithAddScopeThrowsError(): void
     {
         $stub = new OAuth2GrantUserStub;
         $stub->addClient(new OAuth2Client('cid', 'cpass'));
@@ -463,7 +459,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testGrantAccessTokenWithGrantUserWithScope()
+    public function testGrantAccessTokenWithGrantUserWithScope(): void
     {
         $stub = new OAuth2GrantUserStub;
         $stub->addClient(new OAuth2Client('cid', 'cpass'));
@@ -490,14 +486,14 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1 scope2"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1 scope2"}', $response->getContent());
 
         $token = $stub->getLastAccessToken();
         $this->assertSame('cid', $token->getClientId());
         $this->assertSame('scope1 scope2', $token->getScope());
     }
 
-    public function testGrantAccessTokenWithGrantUserWithReducedScope()
+    public function testGrantAccessTokenWithGrantUserWithReducedScope(): void
     {
         $stub = new OAuth2GrantUserStub;
         $stub->addClient(new OAuth2Client('cid', 'cpass'));
@@ -524,14 +520,14 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1"}', $response->getContent());
 
         $token = $stub->getLastAccessToken();
         $this->assertSame('cid', $token->getClientId());
         $this->assertSame('scope1', $token->getScope());
     }
 
-    public function testGrantAccessTokenWithGrantUserWithNoScope()
+    public function testGrantAccessTokenWithGrantUserWithNoScope(): void
     {
         $stub = new OAuth2GrantUserStub;
         $stub->addClient(new OAuth2Client('cid', 'cpass'));
@@ -557,14 +553,14 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1 scope2"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1 scope2"}', $response->getContent());
 
         $token = $stub->getLastAccessToken();
         $this->assertSame('cid', $token->getClientId());
         $this->assertSame('scope1 scope2', $token->getScope());
     }
 
-    public function testGrantAccessTokenWithGrantUserWithNewScopeThrowsError()
+    public function testGrantAccessTokenWithGrantUserWithNewScopeThrowsError(): void
     {
         $stub = new OAuth2GrantUserStub;
         $stub->addClient(new OAuth2Client('cid', 'cpass'));
@@ -594,7 +590,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * @doesNotPerformAssertions
      */
-    public function testGrantAccessTokenWithGrantClient()
+    public function testGrantAccessTokenWithGrantClient(): void
     {
         $this->markTestIncomplete ( "grantAccessToken test not implemented" );
 
@@ -606,7 +602,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * @doesNotPerformAssertions
      */
-    public function testGrantAccessTokenWithGrantRefresh()
+    public function testGrantAccessTokenWithGrantRefresh(): void
     {
         $this->markTestIncomplete ( "grantAccessToken test not implemented" );
 
@@ -616,7 +612,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
     /**
      * Tests OAuth2->grantAccessToken() with extension
      */
-    public function testGrantAccessTokenWithGrantExtension()
+    public function testGrantAccessTokenWithGrantExtension(): void
     {
         $clientId = 'cid';
         $clientSecret = 'csecret';
@@ -646,13 +642,13 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer"}', $response->getContent());
     }
 
     /**
      * Tests OAuth2->grantAccessToken() with extension with limited timeframe
      */
-    public function testGrantAccessTokenWithGrantExtensionLimitedLifetime()
+    public function testGrantAccessTokenWithGrantExtensionLimitedLifetime(): void
     {
         $clientId = 'cid';
         $clientSecret = 'csecret';
@@ -682,13 +678,13 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":86400,"token_type":"bearer"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":86400,"token_type":"bearer"}', $response->getContent());
     }
 
     /**
      * Tests OAuth2->grantAccessToken() with urn: extension
      */
-    public function testGrantAccessTokenWithGrantExtensionJwtBearer()
+    public function testGrantAccessTokenWithGrantExtensionJwtBearer(): void
     {
         $clientId = 'cid';
         $clientSecret = 'csecret';
@@ -719,7 +715,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":null,"refresh_token":"[^"]+"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":null,"refresh_token":"[^"]+"}', $response->getContent());
 
         $token = $stub->getLastAccessToken();
         $this->assertSame('cid', $token->getClientId());
@@ -732,7 +728,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      * Tests OAuth2->getAuthorizeParams()
      * @doesNotPerformAssertions
      */
-    public function testGetAuthorizeParams()
+    public function testGetAuthorizeParams(): void
     {
         // TODO Auto-generated OAuth2Test->testGetAuthorizeParams()
         $this->markTestIncomplete ( "getAuthorizeParams test not implemented" );
@@ -744,7 +740,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
     /**
      * Tests OAuth2->finishClientAuthorization()
      */
-    public function testFinishClientAuthorization()
+    public function testFinishClientAuthorization(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
@@ -760,7 +756,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         )));
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertRegExp('#^http://www\.example\.com/\?foo=bar&state=42&code=#', $response->headers->get('location'));
+        $this->assertMatchesRegularExpression('#^http://www\.example\.com/\?foo=bar&state=42&code=#', $response->headers->get('location'));
 
         $code = $stub->getLastAuthCode();
         $this->assertSame('blah', $code->getClientId());
@@ -768,7 +764,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $this->assertSame($data, $code->getData());
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfClientIdMissing()
+    public function testFinishClientAuthorizationThrowsErrorIfClientIdMissing(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
@@ -789,7 +785,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfClientUnkown()
+    public function testFinishClientAuthorizationThrowsErrorIfClientUnkown(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
@@ -811,7 +807,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfNoAvailUri()
+    public function testFinishClientAuthorizationThrowsErrorIfNoAvailUri(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array()));
@@ -832,7 +828,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfMoreThanOneRegisterdUriAndNoSupplied()
+    public function testFinishClientAuthorizationThrowsErrorIfMoreThanOneRegisterdUriAndNoSupplied(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com', 'http://b.example.com')));
@@ -853,7 +849,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfNoSuppliedUri()
+    public function testFinishClientAuthorizationThrowsErrorIfNoSuppliedUri(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com')));
@@ -874,7 +870,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfNoMatchingUri()
+    public function testFinishClientAuthorizationThrowsErrorIfNoMatchingUri(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com')));
@@ -896,7 +892,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfNoMatchingDomain()
+    public function testFinishClientAuthorizationThrowsErrorIfNoMatchingDomain(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com')));
@@ -918,7 +914,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfNoMatchingPort()
+    public function testFinishClientAuthorizationThrowsErrorIfNoMatchingPort(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com:80')));
@@ -940,7 +936,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfRedirectUriAttemptsPathTraversal()
+    public function testFinishClientAuthorizationThrowsErrorIfRedirectUriAttemptsPathTraversal(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://a.example.com/callback')));
@@ -966,7 +962,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfResponseTypeIsMissing()
+    public function testFinishClientAuthorizationThrowsErrorIfResponseTypeIsMissing(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
@@ -987,7 +983,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfResponseTypeNotSupported()
+    public function testFinishClientAuthorizationThrowsErrorIfResponseTypeNotSupported(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
@@ -1008,7 +1004,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfResponseTypeUnknown()
+    public function testFinishClientAuthorizationThrowsErrorIfResponseTypeUnknown(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
@@ -1029,7 +1025,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfScopeUnkown()
+    public function testFinishClientAuthorizationThrowsErrorIfScopeUnkown(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
@@ -1051,7 +1047,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testFinishClientAuthorizationThrowsErrorIfUnauthorized()
+    public function testFinishClientAuthorizationThrowsErrorIfUnauthorized(): void
     {
         $stub = new OAuth2GrantCodeStub;
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
@@ -1079,8 +1075,15 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
     /**
      * @dataProvider getTestGetBearerTokenData
      */
-    public function testGetBearerToken(Request $request, $token, $remove = false, $exception = null, $exceptionMessage = null, $headers = null, $body = null)
-    {
+    public function testGetBearerToken(
+        Request $request,
+        ?string $token,
+        ?bool $remove = false,
+        ?string $exception = null,
+        ?string $exceptionMessage = null,
+        ?array $headers = null,
+        ?string $body = null
+    ): void {
         $mock = $this->createMock('OAuth2\IOAuth2Storage');
         $oauth2 = new OAuth2($mock);
 
@@ -1103,7 +1106,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function getTestGetBearerTokenData()
+    public function getTestGetBearerTokenData(): array
     {
         $data = array();
 
@@ -1247,7 +1250,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * Produces malformed access tokens
      */
-    public function generateMalformedTokens()
+    public function generateMalformedTokens(): array
     {
         return array(
             array(new OAuth2AccessToken(null, null, null)),
@@ -1259,7 +1262,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * Produces malformed access tokens
      */
-    public function generateExpiryTokens()
+    public function generateExpiryTokens(): array
     {
         return array(
             array(new OAuth2AccessToken('blah', '', time() - 30),                 false), // 30 seconds ago should fail
@@ -1277,7 +1280,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * Produces malformed access tokens
      */
-    public function generateScopes()
+    public function generateScopes(): array
     {
         $token = function ($scope) {
             return new OAuth2AccessToken('blah', '', time() + 60, $scope);

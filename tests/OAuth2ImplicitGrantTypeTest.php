@@ -15,7 +15,7 @@ class OAuth2ImplicitGrantTypeTest extends \PHPUnit\Framework\TestCase
      * Tests OAuth2->grantAccessToken() with implicit
      *
      */
-    public function testGrantAccessTokenWithGrantImplicit()
+    public function testGrantAccessTokenWithGrantImplicit(): void
     {
         $stub = new OAuth2ImplicitStub();
         $stub->addClient(new OAuth2Client('blah', 'foo', array('http://www.example.com/')));
@@ -30,14 +30,14 @@ class OAuth2ImplicitGrantTypeTest extends \PHPUnit\Framework\TestCase
                 'state' => '42',
         )));
 
-        $this->assertRegExp('/^http:\/\/www.example.com\/\?foo=bar#state=42&access_token=[^"]+&expires_in=3600&token_type=bearer$/', $response->headers->get('Location'));
+        $this->assertMatchesRegularExpression('/^http:\/\/www.example.com\/\?foo=bar#state=42&access_token=[^"]+&expires_in=3600&token_type=bearer$/', $response->headers->get('Location'));
     }
 
     /**
      * Tests OAuth2->grantAccessToken() with implicit
      *
      */
-    public function testRejectedAccessTokenWithGrantImplicit()
+    public function testRejectedAccessTokenWithGrantImplicit(): void
     {
         //$this->fixture->grantAccessToken(/* parameters */);
 
