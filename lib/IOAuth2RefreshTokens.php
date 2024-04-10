@@ -29,7 +29,7 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage
      *
      * @ingroup oauth2_section_6
      */
-    public function getRefreshToken(string $refreshToken): IOAuth2RefreshToken;
+    public function getRefreshToken(string $refreshToken): ?IOAuth2RefreshToken;
 
     /**
      * Take the provided refresh token values and store them somewhere.
