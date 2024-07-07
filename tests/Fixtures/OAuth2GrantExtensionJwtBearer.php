@@ -13,7 +13,7 @@ class OAuth2GrantExtensionJwtBearer extends OAuth2StorageStub implements IOAuth2
 {
     protected $sub = null;
 
-    public function checkGrantExtension(IOAuth2Client $client, $uri, array $inputData, array $authHeaders)
+    public function checkGrantExtension(IOAuth2Client $client, string $uri, array $inputData, array $authHeaders): bool|array
     {
         if ('urn:ietf:params:oauth:grant-type:jwt-bearer' !== $uri) {
             throw new OAuth2ServerException(Response::HTTP_BAD_REQUEST, OAuth2::ERROR_UNSUPPORTED_GRANT_TYPE);

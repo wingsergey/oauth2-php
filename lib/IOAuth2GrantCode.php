@@ -31,13 +31,13 @@ interface IOAuth2GrantCode extends IOAuth2Storage
      *
      * @param string $code The authorization code string for which to fetch data.
      *
-     * @return IOAuth2AuthCode
+     * @return IOAuth2AuthCode|null
      *
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1
      *
      * @ingroup oauth2_section_4
      */
-    public function getAuthCode($code);
+    public function getAuthCode(string $code): ?IOAuth2AuthCode;
 
     /**
      * Take the provided authorization code values and store them somewhere.
@@ -56,7 +56,14 @@ interface IOAuth2GrantCode extends IOAuth2Storage
      *
      * @ingroup oauth2_section_4
      */
-    public function createAuthCode($code, IOAuth2Client $client, $data, $redirectUri, $expires, $scope = null);
+    public function createAuthCode(
+        string $code,
+        IOAuth2Client $client,
+        mixed $data,
+        string $redirectUri,
+        int $expires,
+        string $scope = null
+    ): IOAuth2AuthCode;
 
     /**
      * Marks auth code as expired.
@@ -65,5 +72,5 @@ interface IOAuth2GrantCode extends IOAuth2Storage
      *
      * @param string $code
      */
-    public function markAuthCodeAsUsed($code);
+    public function markAuthCodeAsUsed(string $code): void;
 }

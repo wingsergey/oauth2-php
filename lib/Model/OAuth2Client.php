@@ -49,7 +49,7 @@ class OAuth2Client implements IOAuth2Client
     /**
      * {@inheritdoc}
      */
-    public function getPublicId()
+    public function getPublicId(): string
     {
         return $this->id;
     }
@@ -83,7 +83,7 @@ class OAuth2Client implements IOAuth2Client
     /**
      * {@inheritdoc}
      */
-    public function getRedirectUris()
+    public function getRedirectUris(): array
     {
         return $this->redirectUris;
     }

@@ -52,30 +52,26 @@ class OAuth2 implements IOAuth2
     /**
      * Array of persistent variables stored.
      */
-    protected $conf = array();
+    protected array $conf = [];
 
     /**
      * Storage engine for authentication server
-     *
-     * @var IOAuth2Storage
      */
-    protected $storage;
+    protected IOAuth2Storage $storage;
 
     /**
      * Keep track of the old refresh token. So we can unset
      * the old refresh tokens when a new one is issued.
      *
-     * @var string
+     * @var string|null
      */
-    protected $oldRefreshToken = null;
+    protected ?string $oldRefreshToken = null;
 
     /**
      * Keep track of the used auth code. So we can mark it
      * as used after successful authorization
-     *
-     * @var IOAuth2AuthCode
      */
-    protected $usedAuthCode = null;
+    protected ?IOAuth2AuthCode $usedAuthCode = null;
 
     /**
      * Default access token lifetime.
@@ -396,7 +392,7 @@ class OAuth2 implements IOAuth2
      * @param IOAuth2Storage $storage
      * @param array          $config An associative array as below of config options. See CONFIG_* constants.
      */
-    public function __construct(IOAuth2Storage $storage, $config = array())
+    public function __construct(IOAuth2Storage $storage, array $config = array())
     {
         $this->storage = $storage;
 
@@ -410,7 +406,7 @@ class OAuth2 implements IOAuth2
     /**
      * Default configuration options are specified here.
      */
-    protected function setDefaultOptions()
+    protected function setDefaultOptions(): void
     {
         $this->conf = array(
             self::CONFIG_ACCESS_LIFETIME => self::DEFAULT_ACCESS_TOKEN_LIFETIME,
@@ -432,7 +428,7 @@ class OAuth2 implements IOAuth2
     /**
      * {@inheritdoc}
      */
-    public function getVariable($name, $default = null)
+    public function getVariable(string $name, mixed $default = null): mixed
     {
         $name = strtolower($name);
 
@@ -442,7 +438,7 @@ class OAuth2 implements IOAuth2
     /**
      * {@inheritdoc}
      */
-    public function setVariable($name, $value)
+    public function setVariable(string $name, mixed $value): mixed
     {
         $name = strtolower($name);
 
@@ -456,7 +452,7 @@ class OAuth2 implements IOAuth2
     /**
      * {@inheritdoc}
      */
-    public function verifyAccessToken($tokenParam, $scope = null)
+    public function verifyAccessToken(string $tokenParam, string $scope = null): IOAuth2AccessToken
     {
         $tokenType = $this->getVariable(self::CONFIG_TOKEN_TYPE);
         $realm = $this->getVariable(self::CONFIG_WWW_REALM);
@@ -488,7 +484,7 @@ class OAuth2 implements IOAuth2
     /**
      * {@inheritdoc}
      */
-    public function getBearerToken(Request $request = null, $removeFromRequest = false)
+    public function getBearerToken(Request $request = null, ?bool $removeFromRequest = false): ?string
     {
         if ($request === null) {
             $request = Request::createFromGlobals();
@@ -681,7 +677,7 @@ class OAuth2 implements IOAuth2
     /**
      * {@inheritdoc}
      */
-    public function grantAccessToken(Request $request = null)
+    public function grantAccessToken(?Request $request = null): Response
     {
         $filters = array(
             "grant_type" => array(
@@ -1126,8 +1122,12 @@ class OAuth2 implements IOAuth2
     /**
      * {@inheritdoc}
      */
-    public function finishClientAuthorization($isAuthorized, $data = null, Request $request = null, $scope = null)
-    {
+    public function finishClientAuthorization(
+        bool $isAuthorized,
+        mixed $data = null,
+        ?Request $request = null,
+        ?string $scope = null
+    ): ?Response {
         // In theory, this could be POSTed by a 3rd-party (because we are not
         // internally enforcing NONCEs, etc)
         $params = $this->getAuthorizeParams($request);
@@ -1187,7 +1187,7 @@ class OAuth2 implements IOAuth2
      * @return Response
      * @ingroup oauth2_section_4
      */
-    private function createRedirectUriCallbackResponse($redirectUri, $params)
+    private function createRedirectUriCallbackResponse(string $redirectUri, array $params): Response
     {
         return new Response('', 302, array(
             'Location' => $this->buildUri($redirectUri, $params),
@@ -1231,8 +1231,14 @@ class OAuth2 implements IOAuth2
     /**
      * {@inheritdoc}
      */
-    public function createAccessToken(IOAuth2Client $client, $data, $scope = null, $access_token_lifetime = null, $issue_refresh_token = true, $refresh_token_lifetime = null)
-    {
+    public function createAccessToken(
+        IOAuth2Client $client,
+        mixed $data,
+        ?string $scope = null,
+        ?int $access_token_lifetime = null,
+        bool $issue_refresh_token = true,
+        ?int $refresh_token_lifetime = null
+    ): array {
         $token = array(
             "access_token" => $this->genAccessToken(),
             "expires_in" => ($access_token_lifetime ?: $this->getVariable(self::CONFIG_ACCESS_LIFETIME)),
@@ -1290,7 +1296,7 @@ class OAuth2 implements IOAuth2
      * @return string
      * @ingroup oauth2_section_4
      */
-    private function createAuthCode(IOAuth2Client $client, $data, $redirectUri, $scope = null)
+    private function createAuthCode(IOAuth2Client $client, mixed $data, string $redirectUri, ?string $scope = null): string
     {
         $code = $this->genAuthCode();
         $this->storage->createAuthCode(
@@ -1316,7 +1322,7 @@ class OAuth2 implements IOAuth2
      * @ingroup oauth2_section_4
      * @see     OAuth2::genAuthCode()
      */
-    protected function genAccessToken()
+    protected function genAccessToken(): string
     {
         if (@file_exists('/dev/urandom')) { // Get 100 bytes of random data
             $randomData = file_get_contents('/dev/urandom', false, null, 0, 100);
@@ -1349,7 +1355,7 @@ class OAuth2 implements IOAuth2
      *
      * @ingroup oauth2_section_4
      */
-    protected function genAuthCode()
+    protected function genAuthCode(): string
     {
         return $this->genAccessToken(); // let's reuse the same scheme for token generation
     }
@@ -1370,7 +1376,7 @@ class OAuth2 implements IOAuth2
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-2.4.1
      * @ingroup oauth2_section_2
      */
-    protected function getAuthorizationHeader(Request $request)
+    protected function getAuthorizationHeader(Request $request): array
     {
         return array(
             'PHP_AUTH_USER' => $request->server->get('PHP_AUTH_USER'),
@@ -1388,7 +1394,7 @@ class OAuth2 implements IOAuth2
      *
      * @ingroup oauth2_section_5
      */
-    private function getJsonHeaders()
+    private function getJsonHeaders(): array
     {
         $headers = $this->getVariable(self::CONFIG_RESPONSE_EXTRA_HEADERS, array());
         $headers += array(
@@ -1407,7 +1413,7 @@ class OAuth2 implements IOAuth2
      *
      * @return bool
      */
-    protected function validateRedirectUri($inputUri, $storedUris)
+    protected function validateRedirectUri(string $inputUri, string|array $storedUris): bool
     {
         if (!$inputUri || !$storedUris) {
             return false; // if either one is missing, assume INVALID

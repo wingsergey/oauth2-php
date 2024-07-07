@@ -12,21 +12,24 @@ namespace OAuth2;
  */
 class OAuth2AuthenticateException extends OAuth2ServerException
 {
-    /**
-     * @var array
-     */
-    protected $header;
+    protected array $header;
 
     /**
      * @param string $httpCode
      * @param string $tokenType
      * @param string $realm
      * @param string $error            The "error" attribute is used to provide the client with the reason why the access request was declined.
-     * @param string $errorDescription (optional) Human-readable text containing additional information, used to assist in the understanding and resolution of the error occurred.
-     * @param string $scope            (optional) A space-delimited list of scope values indicating the required scope of the access token for accessing the requested resource.
+     * @param string|null $errorDescription (optional) Human-readable text containing additional information, used to assist in the understanding and resolution of the error occurred.
+     * @param string|null $scope            (optional) A space-delimited list of scope values indicating the required scope of the access token for accessing the requested resource.
      */
-    public function __construct($httpCode, $tokenType, $realm, $error, $errorDescription = null, $scope = null)
-    {
+    public function __construct(
+        string $httpCode,
+        string $tokenType,
+        string $realm,
+        string $error,
+        ?string $errorDescription = null,
+        ?string $scope = null
+    ) {
         parent::__construct($httpCode, $error, $errorDescription);
 
         if ($scope) {
@@ -42,22 +45,15 @@ class OAuth2AuthenticateException extends OAuth2ServerException
         $this->header = array('WWW-Authenticate' => $header);
     }
 
-    /**
-     * @return array
-     */
-    public function getResponseHeaders()
+    public function getResponseHeaders(): array
     {
         return $this->header + parent::getResponseHeaders();
     }
 
     /**
      * Adds quotes around $text
-     *
-     * @param string $text
-     *
-     * @return string
      */
-    private function quote($text)
+    private function quote(string $text): string
     {
         // https://tools.ietf.org/html/draft-ietf-httpbis-p1-messaging-17#section-3.2.3
         $text = preg_replace(

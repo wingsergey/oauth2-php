@@ -10,16 +10,13 @@ use Symfony\Component\HttpFoundation\Request;
  */
 class OAuth2OutputTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * @var OAuth2
-     */
-    private $fixture;
+    private OAuth2 $fixture;
 
     /**
      * Tests OAuth2->grantAccessToken() with successful Auth code grant
      *
      */
-    public function testGrantAccessTokenWithGrantAuthCodeSuccess()
+    public function testGrantAccessTokenWithGrantAuthCodeSuccess(): void
     {
         $request = new Request(
             array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'redirect_uri' => 'http://www.example.com/my/subdir', 'client_id' => 'my_little_app', 'client_secret' => 'b', 'code'=> 'foo')
@@ -29,19 +26,19 @@ class OAuth2OutputTest extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getAuthCode')
-            ->will($this->returnValue($storedToken));
+            ->willReturn($storedToken);
 
         $this->fixture = new OAuth2($mockStorage);
         $response = $this->fixture->grantAccessToken($request);
 
         // Successful token grant will return a JSON encoded token:
-        $this->assertRegExp('/{"access_token":".*","expires_in":\d+,"token_type":"bearer"/', $response->getContent());
+        $this->assertMatchesRegularExpression('/{"access_token":".*","expires_in":\d+,"token_type":"bearer"/', $response->getContent());
     }
 
     /**
      * Tests OAuth2->grantAccessToken() with successful Auth code grant, but without redreict_uri in the input
      */
-    public function testGrantAccessTokenWithGrantAuthCodeSuccessWithoutRedirect()
+    public function testGrantAccessTokenWithGrantAuthCodeSuccessWithoutRedirect(): void
     {
         $request = new Request(
             array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'my_little_app', 'client_secret' => 'b', 'code'=> 'foo')
@@ -51,40 +48,40 @@ class OAuth2OutputTest extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getAuthCode')
-            ->will($this->returnValue($storedToken));
+            ->willReturn($storedToken);
 
         $this->fixture = new OAuth2($mockStorage);
         $this->fixture->setVariable(OAuth2::CONFIG_ENFORCE_INPUT_REDIRECT, false);
         $response = $this->fixture->grantAccessToken($request);
 
         // Successful token grant will return a JSON encoded token:
-        $this->assertRegExp('/{"access_token":".*","expires_in":\d+,"token_type":"bearer"/', $response->getContent());
+        $this->assertMatchesRegularExpression('/{"access_token":".*","expires_in":\d+,"token_type":"bearer"/', $response->getContent());
     }
 
 // Utility methods
 
     /**
-     *
      * @param string $interfaceName
+     * @return object
      */
-    protected function createBaseMock($interfaceName)
+    protected function createBaseMock(string $interfaceName): object
     {
         $client = new OAuth2Client('my_little_app');
 
         $mockStorage = $this->createMock($interfaceName);
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnCallback(function ($id) use ($client) {
+            ->willReturnCallback(function ($id) use ($client) {
                 if ('my_little_app' === $id) {
                     return $client;
                 }
-            }));
+            });
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
         $mockStorage->expects($this->any())
             ->method('checkRestrictedGrantType')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
 
          return $mockStorage;
     }

@@ -28,10 +28,8 @@ abstract class OAuth2Client
 
     /**
      * Array of persistent variables stored.
-     *
-     * @var array
      */
-    protected $conf = array();
+    protected array $conf = array();
 
     /**
      * Returns a persistent variable.
@@ -43,9 +41,9 @@ abstract class OAuth2Client
      *
      * @return mixed   The value of the variable.
      */
-    public function getVariable($name, $default = null)
+    public function getVariable(string $name, mixed $default = null): mixed
     {
-        return isset($this->conf[$name]) ? $this->conf[$name] : $default;
+        return $this->conf[$name] ?? $default;
     }
 
     /**
@@ -58,7 +56,7 @@ abstract class OAuth2Client
      *
      * @return $this The client (for chained calls of this method)
      */
-    public function setVariable($name, $value)
+    public function setVariable(string $name, mixed $value): mixed
     {
         $this->conf[$name] = $value;
 
@@ -89,7 +87,7 @@ abstract class OAuth2Client
      *                      - base_domain: (optional) The domain for the cookie.
      *                      - file_upload_support: (optional) true if file uploads are enabled.
      */
-    public function __construct($config = array())
+    public function __construct(array $config = array())
     {
         // We must set base_uri first.
         $this->setVariable('base_uri', $config['base_uri']);
@@ -148,7 +146,7 @@ abstract class OAuth2Client
      *
      * @return string|null A valid session object in associative array for setup cookie, and null if not able to generate it with custom method.
      */
-    protected function getSessionObject($accessToken = null)
+    protected function getSessionObject(?string $accessToken = null): ?string
     {
         $session = null;
 
@@ -206,7 +204,7 @@ abstract class OAuth2Client
      *
      * @throws OAuth2Exception
      */
-    public function api($path, $method = 'GET', $params = array())
+    public function api(string $path, string $method = 'GET', array $params = array()): string
     {
         if (is_array($method) && empty($params)) {
             $params = $method;
@@ -270,7 +268,7 @@ abstract class OAuth2Client
      *
      * @return self The current OAuth2.0 client-side instance.
      */
-    public function setSession($session = null, $writeCookie = true)
+    public function setSession(?string $session = null, bool $writeCookie = true): self
     {
         $this->setVariable('_session', $this->validateSessionObject($session));
         $this->setVariable('_session_loaded', true);
@@ -289,7 +287,7 @@ abstract class OAuth2Client
      *
      * @return array|null The valid session object with OAuth2.0 information, and null if not able to discover any cases.
      */
-    public function getSession()
+    public function getSession(): ?array
     {
         if (!$this->getVariable('_session_loaded')) {
             $session = null;
@@ -350,7 +348,7 @@ abstract class OAuth2Client
      *
      * @return string|null The valid OAuth2.0 access token, and null if not exists in session.
      */
-    public function getAccessToken()
+    public function getAccessToken(): ?string 
     {
         $session = $this->getSession();
 
@@ -365,9 +363,9 @@ abstract class OAuth2Client
      *
      * @param string $code Authorization code issued by authorization server's authorization endpoint.
      *
-     * @return string A valid OAuth2.0 JSON decoded access token in associative array, and null if not enough parameters or JSON decode failed.
+     * @return string|null A valid OAuth2.0 JSON decoded access token in associative array, and null if not enough parameters or JSON decode failed.
      */
-    private function getAccessTokenFromAuthorizationCode($code)
+    private function getAccessTokenFromAuthorizationCode(string $code): ?string
     {
         if ($this->getVariable('access_token_uri') && $this->getVariable('client_id') && $this->getVariable(
                 'client_secret'
@@ -402,7 +400,7 @@ abstract class OAuth2Client
      *
      * @return array|null A valid OAuth2.0 JSON decoded access token in associative array, and null if not enough parameters or JSON decode failed.
      */
-    private function getAccessTokenFromPassword($username, $password)
+    private function getAccessTokenFromPassword(string $username, string $password): ?array
     {
         if ($this->getVariable('access_token_uri') && $this->getVariable('client_id') && $this->getVariable(
                 'client_secret'
@@ -443,7 +441,7 @@ abstract class OAuth2Client
      *
      * @throws OAuth2Exception
      */
-    protected function makeOAuth2Request($path, $method = 'GET', $params = array())
+    protected function makeOAuth2Request(string $path, string $method = 'GET', array $params = array()): string
     {
         if ((!isset($params['oauth_token']) || empty($params['oauth_token'])) && $oauth_token = $this->getAccessToken()
         ) {
@@ -467,7 +465,7 @@ abstract class OAuth2Client
      * @throws OAuth2Exception
      * @return string The JSON decoded response object.
      */
-    protected function makeRequest($path, $method = 'GET', $params = array(), $ch = null)
+    protected function makeRequest(string $path, string $method = 'GET', array $params = array(), mixed $ch = null)
     {
         if (!$ch) {
             $ch = curl_init();
@@ -557,7 +555,7 @@ abstract class OAuth2Client
      *
      * @return string The cookie name.
      */
-    private function getSessionCookieName()
+    private function getSessionCookieName(): string
     {
         return 'oauth2_' . $this->getVariable('client_id');
     }
@@ -570,7 +568,7 @@ abstract class OAuth2Client
      *
      * @param array|null $session The session to use for setting the cookie.
      */
-    protected function setCookieFromSession($session = null)
+    protected function setCookieFromSession(?array $session = null): void
     {
         if (!$this->getVariable('cookie_support')) {
             return;
@@ -613,7 +611,7 @@ abstract class OAuth2Client
      *
      * @return array|null The session object if it validates, null otherwise.
      */
-    protected function validateSessionObject($session)
+    protected function validateSessionObject(array $session): ?array
     {
         // Make sure some essential fields exist.
         if (is_array($session) && isset($session['access_token']) && isset($session['sig'])) {
@@ -641,7 +639,7 @@ abstract class OAuth2Client
      * Since $_SERVER['REQUEST_URI'] is only available on Apache, we
      * generate an equivalent using other environment variables.
      */
-    public function getRequestUri()
+    public function getRequestUri(): string
     {
         if (isset($_SERVER['REQUEST_URI'])) {
             $uri = $_SERVER['REQUEST_URI'];
@@ -665,7 +663,7 @@ abstract class OAuth2Client
      *
      * @return string The current URL.
      */
-    protected function getCurrentUri()
+    protected function getCurrentUri(): string
     {
         $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on'
             ? 'https://'
@@ -700,7 +698,7 @@ abstract class OAuth2Client
      *
      * @return string The URL for the given parameters.
      */
-    protected function getUri($path = '', $params = array())
+    protected function getUri(string $path = '', array $params = array())
     {
         $url = $this->getVariable('services_uri') ? $this->getVariable('services_uri') : $this->getVariable('base_uri');
 
@@ -727,7 +725,7 @@ abstract class OAuth2Client
      *
      * @return string The generated signature
      */
-    protected function generateSignature($params, $secret)
+    protected function generateSignature(array $params, string $secret): string
     {
         // Work with sorted data.
         ksort($params);

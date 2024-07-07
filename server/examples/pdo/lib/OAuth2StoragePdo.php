@@ -84,12 +84,12 @@ class OAuth2StoragePdo implements IOAuth2GrantCode, IOAuth2RefreshTokens
      * Implements IOAuth2Storage::checkClientCredentials().
      *
      */
-    public function checkClientCredentials(IOAuth2Client $clientId, $clientSecret = null)
+    public function checkClientCredentials(IOAuth2Client $client, string $clientSecret = null): bool
     {
         try {
             $sql = 'SELECT client_secret FROM '.self::TABLE_CLIENTS.' WHERE client_id = :client_id';
             $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':client_id', $clientId, PDO::PARAM_STR);
+            $stmt->bindParam(':client_id', $client, PDO::PARAM_STR);
             $stmt->execute();
 
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -98,7 +98,7 @@ class OAuth2StoragePdo implements IOAuth2GrantCode, IOAuth2RefreshTokens
                 return $result !== false;
             }
 
-            return $this->checkPassword($clientSecret, $result['client_secret'], $clientId);
+            return $this->checkPassword($clientSecret, $result['client_secret'], $client);
         } catch (PDOException $e) {
             $this->handleException($e);
         }
@@ -129,9 +129,9 @@ class OAuth2StoragePdo implements IOAuth2GrantCode, IOAuth2RefreshTokens
     /**
      * Implements IOAuth2Storage::getAccessToken().
      */
-    public function getAccessToken($oauth_token)
+    public function getAccessToken(string $oauthToken): ?\OAuth2\Model\IOAuth2AccessToken
     {
-        return $this->getToken($oauth_token, false);
+        return $this->getToken($oauthToken, false);
     }
 
     /**
@@ -176,7 +176,7 @@ class OAuth2StoragePdo implements IOAuth2GrantCode, IOAuth2RefreshTokens
     /**
      * Implements IOAuth2Storage::getAuthCode().
      */
-    public function getAuthCode($code)
+    public function getAuthCode($code): ?\OAuth2\Model\IOAuth2AuthCode
     {
         try {
             $sql = 'SELECT code, client_id, user_id, redirect_uri, expires, scope FROM '.self::TABLE_CODES.' auth_codes WHERE code = :code';

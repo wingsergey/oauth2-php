@@ -16,11 +16,11 @@ interface IOAuth2
      * Returns a persistent variable.
      *
      * @param string $name The name of the variable to return.
-     * @param mixed $default The default value to use if this variable has never been set.
+     * @param mixed|null $default The default value to use if this variable has never been set.
      *
      * @return mixed   The value of the variable.
      */
-    public function getVariable($name, $default = null);
+    public function getVariable(string $name, mixed $default = null): mixed;
 
     /**
      * Sets a persistent variable.
@@ -28,9 +28,9 @@ interface IOAuth2
      * @param string $name The name of the variable to set.
      * @param mixed $value The value to set.
      *
-     * @return OAuth2 The application (for chained calls of this method)
+     * @return mixed The application (for chained calls of this method)
      */
-    public function setVariable($name, $value);
+    public function setVariable(string $name, mixed $value): mixed;
 
     /**
      * Check that a valid access token has been provided.
@@ -50,7 +50,7 @@ interface IOAuth2
      * public access for missing tokens, etc)
      *
      * @param string $tokenParam
-     * @param string $scope A space-separated string of required scope(s), if you want to check for scope.
+     * @param string|null $scope A space-separated string of required scope(s), if you want to check for scope.
      *
      * @return IOAuth2AccessToken Token
      *
@@ -59,7 +59,7 @@ interface IOAuth2
      *
      * @ingroup oauth2_section_7
      */
-    public function verifyAccessToken($tokenParam, $scope = null);
+    public function verifyAccessToken(string $tokenParam, string $scope = null): IOAuth2AccessToken;
 
     /**
      * This is a convenience function that can be used to get the token, which can then
@@ -74,7 +74,7 @@ interface IOAuth2
      * (http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-08#section-2).
      *
      * @param Request $request
-     * @param bool $removeFromRequest
+     * @param ?bool $removeFromRequest
      *
      * @return string|null
      * @throws OAuth2AuthenticateException
@@ -85,7 +85,7 @@ interface IOAuth2
      * @see  http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-08#section-2.3
      *
      */
-    public function getBearerToken(Request $request = null, $removeFromRequest = false);
+    public function getBearerToken(Request $request = null, ?bool $removeFromRequest = false): ?string;
 
     /**
      * Grant or deny a requested access token.
@@ -94,7 +94,7 @@ interface IOAuth2
      * Obviously, you can call your endpoint whatever you want.
      * Draft specifies that the authorization parameters should be retrieved from POST, but you can override to whatever method you like.
      *
-     * @param Request $request (optional) The request
+     * @param Request|null $request (optional) The request
      *
      * @return Response
      * @throws OAuth2ServerException
@@ -105,7 +105,7 @@ interface IOAuth2
      *
      * @ingroup  oauth2_section_4
      */
-    public function grantAccessToken(Request $request = null);
+    public function grantAccessToken(?Request $request = null): Response;
 
     /**
      * Redirect the user appropriately after approval.
@@ -114,18 +114,23 @@ interface IOAuth2
      * redirect the user appropriately.
      *
      * @param bool $isAuthorized true or false depending on whether the user authorized the access.
-     * @param mixed $data Application data
-     * @param Request $request
+     * @param mixed|null $data Application data
+     * @param Request|null $request
      * @param string|null $scope
      *
-     * @return Response
+     * @return Response|null
      * @throws OAuth2RedirectException
      *
      * @see      http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4
      *
      * @ingroup  oauth2_section_4
      */
-    public function finishClientAuthorization($isAuthorized, $data = null, Request $request = null, $scope = null);
+    public function finishClientAuthorization(
+        bool $isAuthorized,
+        mixed $data = null,
+        ?Request $request = null,
+        ?string $scope = null
+    ): ?Response;
 
     /**
      * Handle the creation of access token, also issue refresh token if support.
@@ -145,5 +150,12 @@ interface IOAuth2
      *
      * @ingroup oauth2_section_5
      */
-    public function createAccessToken(IOAuth2Client $client, $data, $scope = null, $access_token_lifetime = null, $issue_refresh_token = true, $refresh_token_lifetime = null);
+    public function createAccessToken(
+        IOAuth2Client $client,
+        mixed $data,
+        ?string $scope = null,
+        ?int $access_token_lifetime = null,
+        bool $issue_refresh_token = true,
+        ?int  $refresh_token_lifetime = null
+    ): array;
 }

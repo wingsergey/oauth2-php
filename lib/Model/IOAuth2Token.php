@@ -4,33 +4,15 @@ namespace OAuth2\Model;
 
 interface IOAuth2Token
 {
-    /**
-     * @return string
-     */
-    public function getClientId();
+    public function getClientId(): ?string;
 
-    /**
-     * @return integer
-     */
-    public function getExpiresIn();
+    public function getExpiresIn(): int;
 
-    /**
-     * @return boolean
-     */
-    public function hasExpired();
+    public function hasExpired(): bool;
 
-    /**
-     * @return string
-     */
-    public function getToken();
+    public function getToken(): ?string;
 
-    /**
-     * @return null|string
-     */
-    public function getScope();
+    public function getScope(): string|null;
 
-    /**
-     * @return mixed
-     */
-    public function getData();
+    public function getData(): mixed;
 }
