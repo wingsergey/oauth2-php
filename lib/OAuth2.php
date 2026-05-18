@@ -5,6 +5,7 @@ namespace OAuth2;
 use OAuth2\Model\IOAuth2AccessToken;
 use OAuth2\Model\IOAuth2AuthCode;
 use OAuth2\Model\IOAuth2Client;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -60,6 +61,13 @@ class OAuth2 implements IOAuth2
      * @var IOAuth2Storage
      */
     protected $storage;
+
+    /**
+     * Optional event dispatcher for OIDC hooks.
+     *
+     * @var EventDispatcherInterface|null
+     */
+    protected ?EventDispatcherInterface $eventDispatcher = null;
 
     /**
      * Keep track of the old refresh token. So we can unset
@@ -396,9 +404,10 @@ class OAuth2 implements IOAuth2
      * @param IOAuth2Storage $storage
      * @param array          $config An associative array as below of config options. See CONFIG_* constants.
      */
-    public function __construct(IOAuth2Storage $storage, $config = array())
+    public function __construct(IOAuth2Storage $storage, $config = array(), ?EventDispatcherInterface $eventDispatcher = null)
     {
         $this->storage = $storage;
+        $this->eventDispatcher = $eventDispatcher;
 
         // Configuration options
         $this->setDefaultOptions();
@@ -789,6 +798,14 @@ class OAuth2 implements IOAuth2
         }
 
         $token = $this->createAccessToken($client, $stored['data'], $scope, $stored['access_token_lifetime'], $stored['issue_refresh_token'], $stored['refresh_token_lifetime']);
+
+        // OIDC hook — allows subscribers to inject additional claims (e.g. id_token)
+        if ($this->eventDispatcher !== null) {
+            $event = new OAuthTokenGrantedEvent($token, $client, $stored['data'], $scope);
+            $this->eventDispatcher->dispatch($event, OAuthTokenGrantedEvent::NAME);
+            $token = $event->getToken();
+        }
+
         return new Response(json_encode($token), 200, $this->getJsonHeaders());
     }
 
