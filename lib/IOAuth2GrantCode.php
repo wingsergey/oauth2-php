@@ -53,10 +53,12 @@ interface IOAuth2GrantCode extends IOAuth2Storage
      * @param string        $redirectUri Redirect URI to be stored.
      * @param int           $expires     The timestamp when the authorization code will expire.
      * @param string        $scope       l(optional) Scopes to be stored in space-separated string.
+     * @param string        $nonce       (optional) OpenID Connect nonce supplied on the authorization request. It must
+     *                                   be stored alongside the code so it can be replayed in the id_token.
      *
      * @ingroup oauth2_section_4
      */
-    public function createAuthCode($code, IOAuth2Client $client, $data, $redirectUri, $expires, $scope = null);
+    public function createAuthCode($code, IOAuth2Client $client, $data, $redirectUri, $expires, $scope = null, $nonce = null);
 
     /**
      * Marks auth code as expired.

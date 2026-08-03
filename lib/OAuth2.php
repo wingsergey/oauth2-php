@@ -786,7 +786,8 @@ class OAuth2 implements IOAuth2
         // if no data is provided than null is set
         $stored += array('scope' => $this->getVariable(self::CONFIG_SUPPORTED_SCOPES, null), 'data' => null,
                          'access_token_lifetime' => $this->getVariable(self::CONFIG_ACCESS_LIFETIME),
-                         'issue_refresh_token' => true, 'refresh_token_lifetime' => $this->getVariable(self::CONFIG_REFRESH_LIFETIME));
+                         'issue_refresh_token' => true, 'refresh_token_lifetime' => $this->getVariable(self::CONFIG_REFRESH_LIFETIME),
+                         'nonce' => null, 'auth_time' => null);
 
         $scope = $stored['scope'];
         if ($input["scope"]) {
@@ -801,7 +802,7 @@ class OAuth2 implements IOAuth2
 
         // OIDC hook — allows subscribers to inject additional claims (e.g. id_token)
         if ($this->eventDispatcher !== null) {
-            $event = new OAuthTokenGrantedEvent($token, $client, $stored['data'], $scope);
+            $event = new OAuthTokenGrantedEvent($token, $client, $stored['data'], $scope, $stored['nonce'], $stored['auth_time']);
             $this->eventDispatcher->dispatch($event, OAuthTokenGrantedEvent::NAME);
             $token = $event->getToken();
         }
@@ -855,6 +856,8 @@ class OAuth2 implements IOAuth2
         return array(
             'scope' => $authCode->getScope(),
             'data' => $authCode->getData(),
+            'nonce' => $authCode->getNonce(),
+            'auth_time' => $authCode->getAuthTime(),
         );
     }
 
@@ -1043,6 +1046,8 @@ class OAuth2 implements IOAuth2
             "redirect_uri" => array("filter" => FILTER_SANITIZE_URL),
             "state" => array("flags" => FILTER_REQUIRE_SCALAR),
             "scope" => array("flags" => FILTER_REQUIRE_SCALAR),
+            // OpenID Connect: opaque value bound to the auth code and replayed in the id_token
+            "nonce" => array("flags" => FILTER_REQUIRE_SCALAR),
         );
 
         if ($request === null) {
@@ -1166,6 +1171,7 @@ class OAuth2 implements IOAuth2
          */
         $params += array(
             'state' => null,
+            'nonce' => null,
         );
 
         $result = array();
@@ -1180,7 +1186,9 @@ class OAuth2 implements IOAuth2
                     $params["client"],
                     $data,
                     $params["redirect_uri"],
-                    $scope
+                    $scope,
+                    // filter_var_array() yields false on a non-scalar nonce: never hand that to storage
+                    is_string($params["nonce"]) && $params["nonce"] !== '' ? $params["nonce"] : null
                 );
             } elseif ($params["response_type"] === self::RESPONSE_TYPE_ACCESS_TOKEN) {
                 $result[self::TRANSPORT_FRAGMENT]['state'] = $params["state"];
@@ -1303,11 +1311,12 @@ class OAuth2 implements IOAuth2
      * @param mixed         $data
      * @param string        $redirectUri An absolute URI to which the authorization server will redirect the user-agent to when the end-user authorization step is completed.
      * @param string        $scope       (optional) Scopes to be stored in space-separated string.
+     * @param string        $nonce       (optional) OpenID Connect nonce to be bound to the authorization code.
      *
      * @return string
      * @ingroup oauth2_section_4
      */
-    private function createAuthCode(IOAuth2Client $client, $data, $redirectUri, $scope = null)
+    private function createAuthCode(IOAuth2Client $client, $data, $redirectUri, $scope = null, $nonce = null)
     {
         $code = $this->genAuthCode();
         $this->storage->createAuthCode(
@@ -1316,7 +1325,8 @@ class OAuth2 implements IOAuth2
             $data,
             $redirectUri,
             time() + $this->getVariable(self::CONFIG_AUTH_LIFETIME),
-            $scope
+            $scope,
+            $nonce
         );
 
         return $code;

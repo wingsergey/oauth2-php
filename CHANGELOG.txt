@@ -1,5 +1,16 @@
 oauth2-php revision xxx, xxxx-xx-xx (development version)
 ----------------------
+* OpenID Connect nonce support (1.11): the "nonce" authorization request parameter
+  is now accepted, bound to the authorization code and exposed to token listeners
+  through OAuthTokenGrantedEvent::getNonce(), so integrators can replay it in the
+  id_token.
+* OpenID Connect auth_time support (1.11): an authentication timestamp stamped on the
+  authorization code by the storage is read back on the token request and exposed
+  through OAuthTokenGrantedEvent::getAuthTime(). Server-side value: it is never read
+  from the authorization request.
+  BC BREAKS for custom storages/models:
+  - IOAuth2GrantCode::createAuthCode() takes a 7th optional argument $nonce.
+  - IOAuth2AuthCode declares getNonce() and getAuthTime().
 
 oauth2-php revision 23, 2011-01-25
 ----------------------
