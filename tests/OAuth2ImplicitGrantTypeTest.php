@@ -30,7 +30,7 @@ class OAuth2ImplicitGrantTypeTest extends \PHPUnit\Framework\TestCase
                 'state' => '42',
         )));
 
-        $this->assertRegExp('/^http:\/\/www.example.com\/\?foo=bar#state=42&access_token=[^"]+&expires_in=3600&token_type=bearer$/', $response->headers->get('Location'));
+        $this->assertMatchesRegularExpression('/^http:\/\/www.example.com\/\?foo=bar#state=42&access_token=[^"]+&expires_in=3600&token_type=bearer$/', $response->headers->get('Location'));
     }
 
     /**

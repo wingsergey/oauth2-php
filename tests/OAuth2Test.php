@@ -215,7 +215,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $response = $this->fixture->grantAccessToken($request);
 
         // Successful token grant will return a JSON encoded token WITHOUT a refresh token:
-        $this->assertRegExp('/^{"access_token":"[^"]+","expires_in":[^"]+,"token_type":"bearer","scope":null}$/', $response->getContent());
+        $this->assertMatchesRegularExpression('/^{"access_token":"[^"]+","expires_in":[^"]+,"token_type":"bearer","scope":null}$/', $response->getContent());
     }
 
     /**
@@ -425,7 +425,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":null}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":null}', $response->getContent());
 
         $token = $stub->getLastAccessToken();
         $this->assertSame('cid', $token->getClientId());
@@ -490,7 +490,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1 scope2"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1 scope2"}', $response->getContent());
 
         $token = $stub->getLastAccessToken();
         $this->assertSame('cid', $token->getClientId());
@@ -524,7 +524,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1"}', $response->getContent());
 
         $token = $stub->getLastAccessToken();
         $this->assertSame('cid', $token->getClientId());
@@ -557,7 +557,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1 scope2"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":"scope1 scope2"}', $response->getContent());
 
         $token = $stub->getLastAccessToken();
         $this->assertSame('cid', $token->getClientId());
@@ -646,7 +646,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer"}', $response->getContent());
     }
 
     /**
@@ -682,7 +682,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":86400,"token_type":"bearer"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":86400,"token_type":"bearer"}', $response->getContent());
     }
 
     /**
@@ -719,7 +719,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
             array('date' => null)
         ));
 
-        $this->assertRegExp('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":null,"refresh_token":"[^"]+"}', $response->getContent());
+        $this->assertMatchesRegularExpression('{"access_token":"[^"]+","expires_in":3600,"token_type":"bearer","scope":null,"refresh_token":"[^"]+"}', $response->getContent());
 
         $token = $stub->getLastAccessToken();
         $this->assertSame('cid', $token->getClientId());
@@ -760,7 +760,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         )));
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertRegExp('#^http://www\.example\.com/\?foo=bar&state=42&code=#', $response->headers->get('location'));
+        $this->assertMatchesRegularExpression('#^http://www\.example\.com/\?foo=bar&state=42&code=#', $response->headers->get('location'));
 
         $code = $stub->getLastAuthCode();
         $this->assertSame('blah', $code->getClientId());
@@ -1103,7 +1103,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function getTestGetBearerTokenData()
+    public static function getTestGetBearerTokenData()
     {
         $data = array();
 
@@ -1247,7 +1247,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * Produces malformed access tokens
      */
-    public function generateMalformedTokens()
+    public static function generateMalformedTokens()
     {
         return array(
             array(new OAuth2AccessToken(null, null, null)),
@@ -1259,7 +1259,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * Produces malformed access tokens
      */
-    public function generateExpiryTokens()
+    public static function generateExpiryTokens()
     {
         return array(
             array(new OAuth2AccessToken('blah', '', time() - 30),                 false), // 30 seconds ago should fail
@@ -1277,7 +1277,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
      *
      * Produces malformed access tokens
      */
-    public function generateScopes()
+    public static function generateScopes()
     {
         $token = function ($scope) {
             return new OAuth2AccessToken('blah', '', time() + 60, $scope);
@@ -1306,22 +1306,22 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
     /**
      * Provider for OAuth2->grantAccessToken()
      */
-    public function generateEmptyDataForGrant()
+    public static function generateEmptyDataForGrant()
     {
         return array(
             array(
-                $this->createRequest(array(), array())
+                self::createRequest(array(), array())
             ),
             array(
-                $this->createRequest(array(), array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE)) // grant_type in auth headers should be ignored
+                self::createRequest(array(), array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE)) // grant_type in auth headers should be ignored
             ),
             array(
-                $this->createRequest(array('not_grant_type' => 5), array())
+                self::createRequest(array('not_grant_type' => 5), array())
             ),
         );
     }
 
-    public function createRequest(array $query = array(), array $headers = array())
+    public static function createRequest(array $query = array(), array $headers = array())
     {
         $request = new Request(
             $query      // _GET

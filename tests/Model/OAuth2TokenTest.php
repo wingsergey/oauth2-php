@@ -30,7 +30,7 @@ class OAuth2TokenTest extends \PHPUnit\Framework\TestCase
         $this->assertSame($expired, $token->hasExpired());
     }
 
-    public function getTestExpiresData()
+    public static function getTestExpiresData()
     {
         return array(
             array(-10, true),
