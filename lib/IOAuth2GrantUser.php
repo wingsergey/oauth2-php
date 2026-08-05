@@ -24,7 +24,7 @@ interface IOAuth2GrantUser extends IOAuth2Storage
      * @param string        $username Username to check.
      * @param string        $password Password to check.
      *
-     * @return bool|array Returns true if the username and password are valid or false if they aren't.
+     * @return bool|array<string, mixed> Returns true if the username and password are valid or false if they aren't.
      * Moreover, if the username and password are valid, and you want to
      * verify the scope of a user's access, return an associative array
      * with the scope values as below. We'll check the scope you provide

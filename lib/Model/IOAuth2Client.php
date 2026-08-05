@@ -17,7 +17,7 @@ interface IOAuth2Client
     public function getPublicId();
 
     /**
-     * @return array
+     * @return array<int, string>
      */
     public function getRedirectUris();
 }

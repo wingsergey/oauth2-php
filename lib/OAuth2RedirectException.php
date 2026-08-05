@@ -32,6 +32,7 @@ class OAuth2RedirectException extends OAuth2ServerException
      * @param string $error            A single error code as described in Section 4.1.2.1
      * @param string $errorDescription (optional) A human-readable text providing additional information, used to assist in the understanding and resolution of the error occurred.
      * @param string $state            (optional) REQUIRED if the "state" parameter was present in the client authorization request. Set to the exact value received from the client.
+     * @param string $method           Whether the error is reported in the query string or in the fragment.
      *
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1.2.1
      *
@@ -51,7 +52,7 @@ class OAuth2RedirectException extends OAuth2ServerException
     /**
      * Redirect the user agent.
      *
-     * @return array
+     * @return array<string, string>
      *
      * @ingroup oauth2_section_4
      */
@@ -68,7 +69,7 @@ class OAuth2RedirectException extends OAuth2ServerException
      * Build the absolute URI based on supplied URI and parameters.
      *
      * @param string $uri    An absolute URI.
-     * @param array  $params Parameters to be append as GET.
+     * @param array<string, array<string, mixed>> $params Parameters to be append as GET.
      *
      * @return string An absolute URI with supplied parameters.
      *
@@ -77,6 +78,12 @@ class OAuth2RedirectException extends OAuth2ServerException
     protected function buildUri($uri, $params)
     {
         $parse_url = parse_url($uri);
+
+        if ($parse_url === false) {
+            // A URI this malformed cannot be rebuilt; hand it back untouched rather than
+            // fataling on false[$k].
+            return $uri;
+        }
 
         // Add our params to the parsed uri
         foreach ($params as $k => $v) {

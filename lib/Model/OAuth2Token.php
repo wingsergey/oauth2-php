@@ -47,6 +47,8 @@ class OAuth2Token implements IOAuth2Token
 
     /**
      * @param string $id
+     *
+     * @return void
      */
     public function setClientId($id)
     {
@@ -63,6 +65,8 @@ class OAuth2Token implements IOAuth2Token
 
     /**
      * @param null|integer $timestamp
+     *
+     * @return void
      */
     public function setExpiresAt($timestamp)
     {
@@ -91,6 +95,8 @@ class OAuth2Token implements IOAuth2Token
 
     /**
      * @param string $token
+     *
+     * @return void
      */
     public function setToken($token)
     {
@@ -107,6 +113,8 @@ class OAuth2Token implements IOAuth2Token
 
     /**
      * @param null|string $scope
+     *
+     * @return void
      */
     public function setScope($scope)
     {
@@ -123,6 +131,8 @@ class OAuth2Token implements IOAuth2Token
 
     /**
      * @param null|string $data
+     *
+     * @return void
      */
     public function setData($data)
     {

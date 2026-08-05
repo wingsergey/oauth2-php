@@ -10,7 +10,7 @@ class OAuth2Client implements IOAuth2Client
     private $id;
 
     /**
-     * @var array
+     * @var array<int, string>
      */
     private $redirectUris;
 
@@ -20,9 +20,9 @@ class OAuth2Client implements IOAuth2Client
     private $secret;
 
     /**
-     * @param string $id
-     * @param null   $secret
-     * @param array  $redirectUris
+     * @param string             $id
+     * @param null|string        $secret
+     * @param array<int, string> $redirectUris
      */
     public function __construct($id, $secret = null, array $redirectUris = array())
     {
@@ -33,6 +33,8 @@ class OAuth2Client implements IOAuth2Client
 
     /**
      * @param string $id
+     *
+     * @return void
      */
     public function setPublicId($id)
     {
@@ -48,7 +50,9 @@ class OAuth2Client implements IOAuth2Client
     }
 
     /**
-     * @param string $secret
+     * @param string|null $secret
+     *
+     * @return void
      */
     public function setSecret($secret)
     {
@@ -66,7 +70,9 @@ class OAuth2Client implements IOAuth2Client
     }
 
     /**
-     * @param array $redirectUris
+     * @param array<int, string> $redirectUris
+     *
+     * @return void
      */
     public function setRedirectUris(array $redirectUris)
     {

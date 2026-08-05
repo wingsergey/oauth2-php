@@ -5,3 +5,4 @@ phpunit.xml
 
 .idea/
 .phpunit.cache
+phpstan.neon

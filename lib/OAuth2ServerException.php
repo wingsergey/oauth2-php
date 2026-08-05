@@ -10,17 +10,17 @@ use Symfony\Component\HttpFoundation\Response;
 class OAuth2ServerException extends \Exception
 {
     /**
-     * @var string
+     * @var int
      */
     protected $httpCode;
 
     /**
-     * @var array
+     * @var array<string, mixed>
      */
     protected $errorData = array();
 
     /**
-     * @param string $httpStatusCode   HTTP status code message as predefined.
+     * @param int    $httpStatusCode   HTTP status code as predefined by Response::HTTP_*.
      * @param string $error            A single error code.
      * @param string $errorDescription (optional) A human-readable text providing additional information, used to assist in the understanding and resolution of the error occurred.
      */
@@ -47,7 +47,7 @@ class OAuth2ServerException extends \Exception
     /**
      * Get HTTP code
      *
-     * @return string
+     * @return int
      */
     public function getHttpCode()
     {
@@ -76,7 +76,7 @@ class OAuth2ServerException extends \Exception
     /**
      * Get HTTP Error Response headers
      *
-     * @return array
+     * @return array<string, string>
      *
      * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.2
      *
@@ -98,7 +98,7 @@ class OAuth2ServerException extends \Exception
      */
     public function getResponseBody()
     {
-        return json_encode($this->errorData);
+        return (string) json_encode($this->errorData);
     }
 
     /**

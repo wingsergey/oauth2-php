@@ -155,6 +155,19 @@ class OAuth2RequestHandlingTest extends \PHPUnit\Framework\TestCase
         $this->assertNull($oauth2->getBearerToken($request));
     }
 
+    public function testArrayShapedTokenInTheBodyIsIgnored()
+    {
+        // "access_token[]=x" parses to an array; it is not a token
+        $request = Request::create(
+            '/resource', 'POST', array(), array(), array(), array('CONTENT_TYPE' => 'application/x-www-form-urlencoded'),
+            OAuth2::TOKEN_PARAM_NAME.'[]=a_token_from_the_body'
+        );
+
+        $oauth2 = new OAuth2(new OAuth2StorageStub());
+
+        $this->assertNull($oauth2->getBearerToken($request));
+    }
+
     public function testBodyWithoutAFormContentTypeIsIgnored()
     {
         $request = Request::create(

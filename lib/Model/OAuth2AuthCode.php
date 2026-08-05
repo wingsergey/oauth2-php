@@ -39,6 +39,8 @@ class OAuth2AuthCode extends OAuth2Token implements IOAuth2AuthCode
 
     /**
      * @param null|string $uri
+     *
+     * @return void
      */
     public function setRedirectUri($uri)
     {
@@ -55,6 +57,8 @@ class OAuth2AuthCode extends OAuth2Token implements IOAuth2AuthCode
 
     /**
      * @param null|string $nonce
+     *
+     * @return void
      */
     public function setNonce($nonce)
     {
@@ -71,6 +75,8 @@ class OAuth2AuthCode extends OAuth2Token implements IOAuth2AuthCode
 
     /**
      * @param null|int $authTime
+     *
+     * @return void
      */
     public function setAuthTime($authTime)
     {

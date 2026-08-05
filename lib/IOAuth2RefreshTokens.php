@@ -23,7 +23,7 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage
      *
      * @param string $refreshToken Refresh token string.
      *
-     * @return IOAuth2Token
+     * @return IOAuth2Token|null Null when no such token is stored.
      *
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-6
      *
@@ -46,6 +46,8 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage
      * @param int           $expires      The timestamp when the refresh token will expire.
      * @param string        $scope        (optional) Scopes to be stored in space-separated string.
      *
+     * @return mixed The return value is ignored by the library.
+     *
      * @ingroup oauth2_section_6
      */
     public function createRefreshToken($refreshToken, IOAuth2Client $client, $data, $expires, $scope = null);
@@ -59,6 +61,8 @@ interface IOAuth2RefreshTokens extends IOAuth2Storage
      * bail out of the script and provide a descriptive fail message.
      *
      * @param string $refreshToken The refresh token string to expire.
+     *
+     * @return void
      *
      * @ingroup oauth2_section_6
      */

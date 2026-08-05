@@ -139,7 +139,7 @@ interface IOAuth2
      * @param bool $issue_refresh_token Issue a refresh tokeniIf true and the storage mechanism supports it
      * @param int|null $refresh_token_lifetime How long the refresh token should life in seconds
      *
-     * @return array
+     * @return array<string, mixed> The token response.
      *
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5
      *

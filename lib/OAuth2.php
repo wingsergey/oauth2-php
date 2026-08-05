@@ -52,6 +52,8 @@ class OAuth2 implements IOAuth2
 {
     /**
      * Array of persistent variables stored.
+     *
+     * @var array<string, mixed>
      */
     protected $conf = array();
 
@@ -73,7 +75,7 @@ class OAuth2 implements IOAuth2
      * Keep track of the old refresh token. So we can unset
      * the old refresh tokens when a new one is issued.
      *
-     * @var string
+     * @var string|null
      */
     protected $oldRefreshToken = null;
 
@@ -81,7 +83,7 @@ class OAuth2 implements IOAuth2
      * Keep track of the used auth code. So we can mark it
      * as used after successful authorization
      *
-     * @var IOAuth2AuthCode
+     * @var IOAuth2AuthCode|null
      */
     protected $usedAuthCode = null;
 
@@ -402,7 +404,7 @@ class OAuth2 implements IOAuth2
      * Creates an OAuth2.0 server-side instance.
      *
      * @param IOAuth2Storage $storage
-     * @param array          $config An associative array as below of config options. See CONFIG_* constants.
+     * @param array<string, mixed> $config An associative array as below of config options. See CONFIG_* constants.
      */
     public function __construct(IOAuth2Storage $storage, $config = array(), ?EventDispatcherInterface $eventDispatcher = null)
     {
@@ -418,6 +420,8 @@ class OAuth2 implements IOAuth2
 
     /**
      * Default configuration options are specified here.
+     *
+     * @return void
      */
     protected function setDefaultOptions()
     {
@@ -554,16 +558,11 @@ class OAuth2 implements IOAuth2
             // The Authorization header may not be passed to PHP by Apache;
             // Trying to obtain it through apache_request_headers()
             if (function_exists('apache_request_headers')) {
-                $headers = apache_request_headers();
+                // Server-side fix for bug in old Android versions (a nice side-effect of this fix means we don't care about capitalization for Authorization)
+                $headers = array_combine(array_map('ucwords', array_keys(apache_request_headers())), array_values(apache_request_headers()));
 
-                if (is_array($headers)) {
-
-                    // Server-side fix for bug in old Android versions (a nice side-effect of this fix means we don't care about capitalization for Authorization)
-                    $headers = array_combine(array_map('ucwords', array_keys($headers)), array_values($headers));
-
-                    if (isset($headers['Authorization'])) {
-                        $header = $headers['Authorization'];
-                    }
+                if (isset($headers['Authorization'])) {
+                    $header = $headers['Authorization'];
                 }
             }
         } else {
@@ -618,15 +617,16 @@ class OAuth2 implements IOAuth2
         $body = $request->getContent();
         parse_str($body, $parameters);
 
-        if (false === is_array($parameters)) {
-            return null;
-        }
-
         if (false === array_key_exists(self::TOKEN_PARAM_NAME, $parameters)) {
             return null;
         }
 
         $token = $parameters[self::TOKEN_PARAM_NAME];
+
+        // "access_token[]=x" parses to an array; a token is a string or it is not a token
+        if (!is_string($token)) {
+            return null;
+        }
 
         if ($removeFromRequest) {
             // S2 request content is immutable, so we can't do nothing more than crippled implementation below...
@@ -662,8 +662,8 @@ class OAuth2 implements IOAuth2
     /**
      * Check if everything in required scope is contained in available scope.
      *
-     * @param string $requiredScope  Required scope to be check with.
-     * @param string $availableScope Supported scopes.
+     * @param string|array<string> $requiredScope  Required scope to be check with.
+     * @param string|array<string> $availableScope Supported scopes.
      *
      * @return bool Return true if everything in required scope is contained in available scope or false if it isn't.
      *
@@ -803,18 +803,21 @@ class OAuth2 implements IOAuth2
         // OIDC hook — allows subscribers to inject additional claims (e.g. id_token)
         if ($this->eventDispatcher !== null) {
             $event = new OAuthTokenGrantedEvent($token, $client, $stored['data'], $scope, $stored['nonce'], $stored['auth_time']);
+            // The second argument is outside PSR-14, but Symfony's dispatcher uses it as the
+            // event name; dropping it would silently stop every subscriber listening on NAME.
+            /** @phpstan-ignore arguments.count */
             $this->eventDispatcher->dispatch($event, OAuthTokenGrantedEvent::NAME);
             $token = $event->getToken();
         }
 
-        return new Response(json_encode($token), 200, $this->getJsonHeaders());
+        return new Response((string) json_encode($token), 200, $this->getJsonHeaders());
     }
 
     /**
      * @param IOAuth2Client $client
-     * @param array         $input
+     * @param array<string, mixed> $input
      *
-     * @return array
+     * @return array<string, mixed>
      * @throws OAuth2ServerException
      */
     protected function grantAccessTokenAuthCode(IOAuth2Client $client, array $input)
@@ -863,9 +866,9 @@ class OAuth2 implements IOAuth2
 
     /**
      * @param IOAuth2Client $client
-     * @param array         $input
+     * @param array<string, mixed> $input
      *
-     * @return array|bool
+     * @return array<string, mixed>|bool
      * @throws OAuth2ServerException
      */
     protected function grantAccessTokenUserCredentials(IOAuth2Client $client, array $input)
@@ -889,10 +892,10 @@ class OAuth2 implements IOAuth2
 
     /**
      * @param IOAuth2Client $client
-     * @param array         $input
-     * @param array         $clientCredentials
+     * @param array<string, mixed> $input
+     * @param array{0: string, 1: string|null} $clientCredentials
      *
-     * @return array|bool
+     * @return array<string, mixed>|bool
      * @throws OAuth2ServerException
      */
     protected function grantAccessTokenClientCredentials(IOAuth2Client $client, array $input, array $clientCredentials)
@@ -920,9 +923,9 @@ class OAuth2 implements IOAuth2
 
     /**
      * @param IOAuth2Client $client
-     * @param array         $input
+     * @param array<string, mixed> $input
      *
-     * @return array
+     * @return array<string, mixed>
      * @throws OAuth2ServerException
      */
     protected function grantAccessTokenRefreshToken(IOAuth2Client $client, array $input)
@@ -954,6 +957,13 @@ class OAuth2 implements IOAuth2
         );
     }
 
+    /**
+     * @param array<string, mixed>  $inputData   Unfiltered input data.
+     * @param array<string, string> $authHeaders Authorization headers.
+     *
+     * @return array<string, mixed>|bool
+     * @throws OAuth2ServerException
+     */
     protected function grantAccessTokenExtension(IOAuth2Client $client, array $inputData, array $authHeaders)
     {
         if (!($this->storage instanceof IOAuth2GrantExtension)) {
@@ -995,6 +1005,11 @@ class OAuth2 implements IOAuth2
      *
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-2.4.1
      *
+     * @param array<string, mixed>  $inputData   Unfiltered input data.
+     * @param array<string, string> $authHeaders Authorization headers.
+     *
+     * @return array{0: string, 1: string|null} The client id, and its secret when one was sent.
+     *
      * @ingroup oauth2_section_2
      */
     protected function getClientCredentials(array $inputData, array $authHeaders)
@@ -1032,6 +1047,8 @@ class OAuth2 implements IOAuth2
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1.1
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-21#section-10.12
      *
+     * @return array<string, mixed> The filtered input plus the resolved 'client'.
+     *
      * @ingroup oauth2_section_3
      */
     protected function getAuthorizeParams(?Request $request = null)
@@ -1057,7 +1074,7 @@ class OAuth2 implements IOAuth2
         /**
          * $inputData The draft specifies that the parameters should be retrieved from GET, but you can override to whatever method you like.
          *
-         * @var array
+         * @var array<string, mixed>
          */
         $inputData = $request->query->all();
         $input = filter_var_array($inputData, $filters);
@@ -1073,7 +1090,7 @@ class OAuth2 implements IOAuth2
             throw new OAuth2ServerException(Response::HTTP_BAD_REQUEST, self::ERROR_INVALID_CLIENT, 'Unknown client');
         }
 
-        $input["redirect_uri"] = $this->getRedirectUri($input["redirect_uri"], $client);
+        $input["redirect_uri"] = $this->getRedirectUri($input["redirect_uri"] ?: null, $client);
 
         // type and client_id are required
         if (!$input["response_type"]) {
@@ -1109,6 +1126,14 @@ class OAuth2 implements IOAuth2
         ) + $input;
     }
 
+    /**
+     * Resolves the redirect URI to use, falling back to the one registered by the client.
+     *
+     * @param string|null $redirectUri
+     *
+     * @return string
+     * @throws OAuth2ServerException
+     */
     protected function getRedirectUri($redirectUri, IOAuth2Client $client)
     {
         // Make sure a valid redirect_uri was supplied. If specified, it must match the stored URI.
@@ -1167,7 +1192,7 @@ class OAuth2 implements IOAuth2
          *   - state: (optional) An opaque value used by the client to maintain
          *     state between the request and callback.
          *
-         * @var array
+         * @var array<string, mixed>
          */
         $params += array(
             'state' => null,
@@ -1207,7 +1232,7 @@ class OAuth2 implements IOAuth2
      * Handle both redirect for success or error response.
      *
      * @param string $redirectUri An absolute URI to which the authorization server will redirect the user-agent to when the end-user authorization step is completed.
-     * @param array  $params      Parameters to be pass though buildUri().
+     * @param array<string, array<string, mixed>> $params      Parameters to be pass though buildUri().
      *
      * @return Response
      * @ingroup oauth2_section_4
@@ -1223,7 +1248,7 @@ class OAuth2 implements IOAuth2
      * Build the absolute URI based on supplied URI and parameters.
      *
      * @param string $uri    An absolute URI.
-     * @param array  $params Parameters to be append as GET.
+     * @param array<string, array<string, mixed>> $params Parameters to be append as GET.
      *
      * @return string An absolute URI with supplied parameters.
      *
@@ -1232,6 +1257,12 @@ class OAuth2 implements IOAuth2
     private function buildUri($uri, $params)
     {
         $parse_url = parse_url($uri);
+
+        if ($parse_url === false) {
+            // A URI this malformed cannot be rebuilt; hand it back untouched rather than
+            // fataling on false[$k].
+            return $uri;
+        }
 
         // Add our params to the parsed uri
         foreach ($params as $k => $v) {
@@ -1318,6 +1349,10 @@ class OAuth2 implements IOAuth2
      */
     private function createAuthCode(IOAuth2Client $client, $data, $redirectUri, $scope = null, $nonce = null)
     {
+        if (!$this->storage instanceof IOAuth2GrantCode) {
+            throw new OAuth2ServerException(Response::HTTP_BAD_REQUEST, self::ERROR_UNSUPPORTED_RESPONSE_TYPE);
+        }
+
         $code = $this->genAuthCode();
         $this->storage->createAuthCode(
             $code,
@@ -1349,14 +1384,14 @@ class OAuth2 implements IOAuth2
             $randomData = file_get_contents('/dev/urandom', false, null, 0, 100);
         } elseif (function_exists('openssl_random_pseudo_bytes')) { // Get 100 bytes of pseudo-random data
             $bytes = openssl_random_pseudo_bytes(100, $strong);
-            if (true === $strong && false !== $bytes) {
+            if (true === $strong) {
                 $randomData = $bytes;
             }
         }
         // Last resort: mt_rand
         if (empty($randomData)) { // Get 108 bytes of (pseudo-random, insecure) data
-            $randomData = mt_rand() . mt_rand() . mt_rand() . uniqid(mt_rand(), true) . microtime(true) . uniqid(
-                    mt_rand(),
+            $randomData = mt_rand() . mt_rand() . mt_rand() . uniqid((string) mt_rand(), true) . microtime(true) . uniqid(
+                    (string) mt_rand(),
                     true
                 );
         }
@@ -1392,7 +1427,7 @@ class OAuth2 implements IOAuth2
      *
      * @param Request $request
      *
-     * @return array An array of the basic username and password provided.
+     * @return array<string, string> An array of the basic username and password provided.
      *
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-2.4.1
      * @ingroup oauth2_section_2
@@ -1411,7 +1446,7 @@ class OAuth2 implements IOAuth2
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.1
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-5.2
      *
-     * @return array
+     * @return array<string, string>
      *
      * @ingroup oauth2_section_5
      */
@@ -1429,8 +1464,8 @@ class OAuth2 implements IOAuth2
     /**
      * Internal method for validating redirect URI supplied
      *
-     * @param string       $inputUri
-     * @param string|array $storedUris
+     * @param string|null                $inputUri
+     * @param string|array<string>|null $storedUris
      *
      * @return bool
      */

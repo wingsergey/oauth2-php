@@ -8,6 +8,9 @@ class OAuthTokenGrantedEvent
 {
     public const NAME = 'oauth_server.token_granted';
 
+    /**
+     * @param array<string, mixed> $token The token response about to be sent to the client.
+     */
     public function __construct(
         private array         $token,
         private IOAuth2Client $client,
@@ -17,8 +20,16 @@ class OAuthTokenGrantedEvent
         private ?int          $authTime = null,
     ) {}
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getToken(): array            { return $this->token; }
+
+    /**
+     * @param array<string, mixed> $token
+     */
     public function setToken(array $token): void { $this->token = $token; }
+
     public function getClient(): IOAuth2Client   { return $this->client; }
     public function getUser(): mixed             { return $this->user; }
     public function getScope(): ?string          { return $this->scope; }

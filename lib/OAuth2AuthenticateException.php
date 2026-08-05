@@ -13,12 +13,12 @@ namespace OAuth2;
 class OAuth2AuthenticateException extends OAuth2ServerException
 {
     /**
-     * @var array
+     * @var array<string, string>
      */
     protected $header;
 
     /**
-     * @param string $httpCode
+     * @param int    $httpCode
      * @param string $tokenType
      * @param string $realm
      * @param string $error            The "error" attribute is used to provide the client with the reason why the access request was declined.
@@ -43,7 +43,7 @@ class OAuth2AuthenticateException extends OAuth2ServerException
     }
 
     /**
-     * @return array
+     * @return array<string, string>
      */
     public function getResponseHeaders()
     {
@@ -67,7 +67,7 @@ class OAuth2AuthenticateException extends OAuth2ServerException
         // Written without the /x modifier on purpose: PCRE does not ignore whitespace
         // inside a character class, so an indented pattern would silently add LF, CR and
         // SP to the negated class and let them through into the header.
-        $text = preg_replace('~[^\x21-\x7E\x80-\xFF \t]~', '', $text);
+        $text = (string) preg_replace('~[^\x21-\x7E\x80-\xFF \t]~', '', $text);
 
         $text = addcslashes($text, '"\\');
 

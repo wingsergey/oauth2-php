@@ -17,7 +17,7 @@ interface IOAuth2Storage
      *
      * @param string $clientId
      *
-     * @return IOAuth2Client
+     * @return IOAuth2Client|null Null when no such client is registered.
      */
     public function getClient($clientId);
 
@@ -42,7 +42,7 @@ interface IOAuth2Storage
      *
      * @param string $oauthToken The token string.
      *
-     * @return IOAuth2AccessToken
+     * @return IOAuth2AccessToken|null Null when no such token is stored.
      *
      * @ingroup oauth2_section_7
      */
@@ -58,6 +58,8 @@ interface IOAuth2Storage
      * @param mixed         $data       Application data associated with the refresh token, such as a User object.
      * @param int           $expires    The timestamp when the refresh token will expire.
      * @param string        $scope      (optional) Scopes to be stored in space-separated string.
+     *
+     * @return mixed The return value is ignored by the library.
      *
      * @ingroup oauth2_section_4
      */

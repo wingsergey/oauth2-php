@@ -5,7 +5,7 @@ namespace OAuth2\Model;
 interface IOAuth2AuthCode extends IOAuth2Token
 {
     /**
-     * @return string
+     * @return string|null Null when the code was issued without a redirect URI.
      */
     public function getRedirectUri();
 

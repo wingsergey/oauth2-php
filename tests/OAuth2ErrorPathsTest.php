@@ -30,6 +30,17 @@ class OAuth2ErrorPathsTest extends \PHPUnit\Framework\TestCase
         );
     }
 
+    public function testMissingClientIdIsRejectedBeforeAnyStorageLookup()
+    {
+        $stub = $this->storageWithClient();
+
+        $this->assertServerException(
+            OAuth2::ERROR_INVALID_CLIENT,
+            'Client id was not found in the headers or body',
+            fn () => $this->token($stub, array('grant_type' => OAuth2::GRANT_TYPE_USER_CREDENTIALS))
+        );
+    }
+
     public function testWrongClientSecretIsRejected()
     {
         $stub = $this->storageWithClient();

@@ -31,7 +31,7 @@ interface IOAuth2GrantCode extends IOAuth2Storage
      *
      * @param string $code The authorization code string for which to fetch data.
      *
-     * @return IOAuth2AuthCode
+     * @return IOAuth2AuthCode|null Null when no such code is stored.
      *
      * @see     http://tools.ietf.org/html/draft-ietf-oauth-v2-20#section-4.1
      *
@@ -56,6 +56,8 @@ interface IOAuth2GrantCode extends IOAuth2Storage
      * @param string        $nonce       (optional) OpenID Connect nonce supplied on the authorization request. It must
      *                                   be stored alongside the code so it can be replayed in the id_token.
      *
+     * @return mixed The return value is ignored by the library.
+     *
      * @ingroup oauth2_section_4
      */
     public function createAuthCode($code, IOAuth2Client $client, $data, $redirectUri, $expires, $scope = null, $nonce = null);
@@ -66,6 +68,8 @@ interface IOAuth2GrantCode extends IOAuth2Storage
      * Depending on implementation it can change expiration date on auth code or remove it at all.
      *
      * @param string $code
+     *
+     * @return void
      */
     public function markAuthCodeAsUsed($code);
 }
