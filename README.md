@@ -1,8 +1,9 @@
 OAuth2 Server Implementation
 ============================
 
-[![Build Status](https://secure.travis-ci.org/FriendsOfSymfony/oauth2-php.png?branch=master)](http://travis-ci.org/FriendsOfSymfony/oauth2-php)
-[![HHVM Status](http://hhvm.h4cc.de/badge/FriendsOfSymfony/oauth2-php.svg)](http://hhvm.h4cc.de/package/FriendsOfSymfony/oauth2-php)
+[![Tests](https://github.com/klapaudius/oauth2-php/actions/workflows/coverage.yml/badge.svg?branch=master)](https://github.com/klapaudius/oauth2-php/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/klapaudius/oauth2-php/graph/badge.svg?token=QJ6HNBJO31)](https://codecov.io/gh/klapaudius/oauth2-php)
+![Packagist Downloads](https://img.shields.io/packagist/dt/klapaudius/oauth2-php)
 
 This library now implements draft 20 of OAuth 2.0.
 The client is still only draft-10.
