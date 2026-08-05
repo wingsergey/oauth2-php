@@ -2,13 +2,6 @@
 
 namespace OAuth2\Model;
 
-/**
- * @method getUsername()
- * @method getPassword()
- * @method getSalt()
- * @method getRoles()
- * @method eraseCredentials()
- */
 class OAuth2Client implements IOAuth2Client
 {
     /**

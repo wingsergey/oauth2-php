@@ -1,5 +1,16 @@
 oauth2-php revision xxx, xxxx-xx-xx (development version)
 ----------------------
+* The library no longer ties OAuth2 clients to the Symfony security layer (3.0):
+  IOAuth2Client no longer extends Symfony\Component\Security\Core\User\UserInterface.
+  A client is not a security identity, and the library was carrying an undeclared
+  dependency on symfony/security-core through its public interface.
+  As a result symfony/security-core is no longer required at all, and the minimum
+  PHP version is now 8.2.
+  BC BREAKS for integrators:
+  - IOAuth2Client no longer provides getRoles(), getUserIdentifier() or
+    eraseCredentials(). Implementations that need to expose a client as a Symfony
+    user must add UserInterface to their own client contract.
+  - OAuth2\Model\OAuth2Client no longer declares those methods either.
 * OpenID Connect nonce support (2.0): the "nonce" authorization request parameter
   is now accepted, bound to the authorization code and exposed to token listeners
   through OAuthTokenGrantedEvent::getNonce(), so integrators can replay it in the
