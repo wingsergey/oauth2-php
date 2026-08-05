@@ -44,7 +44,8 @@ if ($_POST) {
 try {
     $auth_params = $oauth->getAuthorizeParams();
 } catch (OAuth2ServerException $oauthError) {
-    $oauthError->sendHttpResponse();
+    $oauthError->getHttpResponse()->send();
+    exit;
 }
 
 ?>

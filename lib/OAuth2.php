@@ -675,11 +675,11 @@ class OAuth2 implements IOAuth2
     {
         // The required scope should match or be a subset of the available scope
         if (!is_array($requiredScope)) {
-            $requiredScope = explode(' ', trim($requiredScope));
+            $requiredScope = explode(' ', trim((string) $requiredScope));
         }
 
         if (!is_array($availableScope)) {
-            $availableScope = explode(' ', trim($availableScope));
+            $availableScope = explode(' ', trim((string) $availableScope));
         }
 
         return (count(array_diff($requiredScope, $availableScope)) == 0);

@@ -53,24 +53,21 @@ class OAuth2AuthenticateException extends OAuth2ServerException
     /**
      * Adds quotes around $text
      *
-     * @param string $text
+     * @param null|string $text A null error_description is a normal case, it must quote as "".
      *
      * @return string
      */
     private function quote($text)
     {
+        $text = (string) $text;
+
+        // Keep only what a quoted-string may hold: printable ASCII, obs-text, SP and HTAB.
         // https://tools.ietf.org/html/draft-ietf-httpbis-p1-messaging-17#section-3.2.3
-        $text = preg_replace(
-            '~
-                        [^
-                            \x21-\x7E
-                            \x80-\xFF
-                            \ \t
-                        ]
-                        ~x',
-            '',
-            $text
-        );
+        //
+        // Written without the /x modifier on purpose: PCRE does not ignore whitespace
+        // inside a character class, so an indented pattern would silently add LF, CR and
+        // SP to the negated class and let them through into the header.
+        $text = preg_replace('~[^\x21-\x7E\x80-\xFF \t]~', '', $text);
 
         $text = addcslashes($text, '"\\');
 

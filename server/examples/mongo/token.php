@@ -15,5 +15,6 @@ $oauth = new MongoOAuth2();
 try {
     $oauth->grantAccessToken();
 } catch (OAuth2ServerException $oauthError) {
-    $oauthError->sendHttpResponse();
+    $oauthError->getHttpResponse()->send();
+    exit;
 }

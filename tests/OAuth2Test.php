@@ -9,6 +9,7 @@ use OAuth2\Model\OAuth2Client;
 use OAuth2\Tests\Fixtures\OAuth2StorageStub;
 use OAuth2\Tests\Fixtures\OAuth2GrantCodeStub;
 use OAuth2\Tests\Fixtures\OAuth2GrantUserStub;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -49,7 +50,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $mockStorage->expects($this->once())
             ->method('getAccessToken')
-            ->will($this->returnValue(false));
+            ->willReturn(false);
 
         $this->fixture = new OAuth2($mockStorage);
 
@@ -60,16 +61,15 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
 
     /**
      * Tests OAuth2->verifyAccessToken() with a malformed token
-     *
-     * @dataProvider generateMalformedTokens
      */
+    #[DataProvider('generateMalformedTokens')]
     public function testVerifyAccessTokenMalformedToken(IOAuth2AccessToken $token)
     {
         // Set up the mock storage to say this token does not exist
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $mockStorage->expects($this->once())
             ->method('getAccessToken')
-            ->will($this->returnValue($token));
+            ->willReturn($token);
 
         $this->fixture = new OAuth2($mockStorage);
 
@@ -80,16 +80,15 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
 
     /**
      * Tests OAuth2->verifyAccessToken() with different expiry dates
-     *
-     * @dataProvider generateExpiryTokens
      */
+    #[DataProvider('generateExpiryTokens')]
     public function testVerifyAccessTokenCheckExpiry(IOAuth2AccessToken $token, $expectedToPass)
     {
         // Set up the mock storage to say this token does not exist
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $mockStorage->expects($this->once())
             ->method('getAccessToken')
-            ->will($this->returnValue($token));
+            ->willReturn($token);
 
         $this->fixture = new OAuth2($mockStorage);
 
@@ -108,16 +107,15 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
 
     /**
      * Tests OAuth2->verifyAccessToken() with different scopes
-     *
-     * @dataProvider generateScopes
      */
+    #[DataProvider('generateScopes')]
     public function testVerifyAccessTokenCheckScope($scopeRequired, IOAuth2AccessToken $token, $expectedToPass)
     {
         // Set up the mock storage to say this token does not exist
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $mockStorage->expects($this->once())
             ->method('getAccessToken')
-            ->will($this->returnValue($token));
+            ->willReturn($token);
 
         $this->fixture = new OAuth2($mockStorage);
 
@@ -134,9 +132,8 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
 
     /**
      * Tests OAuth2->grantAccessToken() for missing data
-     *
-     * @dataProvider generateEmptyDataForGrant
      */
+    #[DataProvider('generateEmptyDataForGrant')]
     public function testGrantAccessTokenMissingData($request)
     {
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
@@ -156,10 +153,10 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createMock('OAuth2\IOAuth2Storage');
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnValue(new OAuth2Client('dev-abc')));
+            ->willReturn(new OAuth2Client('dev-abc'));
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
         $this->fixture = new OAuth2($mockStorage);
 
         $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE);
@@ -198,7 +195,6 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
 
     /**
      * Tests OAuth2->grantAccessToken() with successful Client Credentials grant
-     *
      */
     public function testGrantAccessTokenWithClientCredentialsSuccess()
     {
@@ -220,17 +216,16 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
 
     /**
      * Tests OAuth2->grantAccessToken() with Auth code grant
-     *
      */
     public function testGrantAccessTokenWithGrantAuthCodeMandatoryParams()
     {
         $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnValue(new OAuth2Client('dev-abc')));
+            ->willReturn(new OAuth2Client('dev-abc'));
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
 
         $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'a', 'client_secret' => 'b');
 
@@ -256,17 +251,16 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
 
      /**
      * Tests OAuth2->grantAccessToken() with Auth code grant
-     *
      */
     public function testGrantAccessTokenWithGrantAuthCodeNoToken()
     {
         $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnValue(new OAuth2Client('dev-abc')));
+            ->willReturn(new OAuth2Client('dev-abc'));
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
 
         $inputData = array('grant_type' => OAuth2::GRANT_TYPE_AUTH_CODE, 'client_id' => 'a', 'client_secret' => 'b', 'redirect_uri' => 'foo', 'code'=> 'foo');
 
@@ -283,7 +277,6 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
 
     /**
      * Tests OAuth2->grantAccessToken() with checks the redirect URI
-     *
      */
     public function testGrantAccessTokenWithGrantAuthCodeRedirectChecked()
     {
@@ -293,13 +286,13 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createBaseMock('Oauth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnValue(new OAuth2Client('my_little_app')));
+            ->willReturn(new OAuth2Client('my_little_app'));
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
         $mockStorage->expects($this->any())
             ->method('getAuthCode')
-            ->will($this->returnValue($storedToken));
+            ->willReturn($storedToken);
 
         // Ensure that the redirect_uri is checked
         try {
@@ -315,7 +308,6 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
 
     /**
      * Tests OAuth2->grantAccessToken() with checks the client ID is matched
-     *
      */
     public function testGrantAccessTokenWithGrantAuthCodeClientIdChecked()
     {
@@ -325,13 +317,13 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnValue(new OAuth2Client('x')));
+            ->willReturn(new OAuth2Client('x'));
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
         $mockStorage->expects($this->any())
             ->method('getAuthCode')
-            ->will($this->returnValue($storedToken));
+            ->willReturn($storedToken);
 
         // Ensure the client ID is checked
         try {
@@ -347,7 +339,6 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
 
     /**
      * Tests OAuth2->grantAccessToken() with same Auth code grant
-     *
      */
     public function testGrantAccessTokenWithSameGrantAuthCode()
     {
@@ -382,20 +373,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * Tests OAuth2->grantAccessToken() with implicit
-     *
-     * @doesNotPerformAssertions
-     */
-    public function testGrantAccessTokenWithGrantImplicit()
-    {
-        $this->markTestIncomplete ( "grantAccessToken test not implemented" );
-
-        $this->fixture->grantAccessToken(/* parameters */);
-    }
-
-    /**
      * Tests OAuth2->grantAccessToken() with user credentials
-     *
      */
     public function testGrantAccessTokenWithGrantUser()
     {
@@ -590,30 +568,6 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * Tests OAuth2->grantAccessToken() with client credentials
-     *
-     * @doesNotPerformAssertions
-     */
-    public function testGrantAccessTokenWithGrantClient()
-    {
-        $this->markTestIncomplete ( "grantAccessToken test not implemented" );
-
-        $this->fixture->grantAccessToken(/* parameters */);
-    }
-
-    /**
-     * Tests OAuth2->grantAccessToken() with refresh token
-     *
-     * @doesNotPerformAssertions
-     */
-    public function testGrantAccessTokenWithGrantRefresh()
-    {
-        $this->markTestIncomplete ( "grantAccessToken test not implemented" );
-
-        $this->fixture->grantAccessToken(/* parameters */);
-    }
-
-    /**
      * Tests OAuth2->grantAccessToken() with extension
      */
     public function testGrantAccessTokenWithGrantExtension()
@@ -725,20 +679,6 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $this->assertSame('cid', $token->getClientId());
         $data = $token->getData();
         $this->assertSame($subject, $data['sub']);
-    }
-
-
-    /**
-     * Tests OAuth2->getAuthorizeParams()
-     * @doesNotPerformAssertions
-     */
-    public function testGetAuthorizeParams()
-    {
-        // TODO Auto-generated OAuth2Test->testGetAuthorizeParams()
-        $this->markTestIncomplete ( "getAuthorizeParams test not implemented" );
-
-        $this->fixture->getAuthorizeParams(/* parameters */);
-
     }
 
     /**
@@ -1076,9 +1016,7 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    /**
-     * @dataProvider getTestGetBearerTokenData
-     */
+    #[DataProvider('getTestGetBearerTokenData')]
     public function testGetBearerToken(Request $request, $token, $remove = false, $exception = null, $exceptionMessage = null, $headers = null, $body = null)
     {
         $mock = $this->createMock('OAuth2\IOAuth2Storage');
@@ -1232,10 +1170,10 @@ class OAuth2Test extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createMock($interfaceName);
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
         $mockStorage->expects($this->any())
             ->method('checkRestrictedGrantType')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
 
          return $mockStorage;
     }

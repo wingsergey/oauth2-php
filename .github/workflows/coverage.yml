@@ -1,0 +1,62 @@
+name: "Coverage"
+
+on:
+    push:
+        branches:
+             - 'master'
+    pull_request:
+        branches:
+            - '**'
+
+permissions:
+    contents: read
+
+jobs:
+    build:
+        name: Coverage
+        runs-on: 'ubuntu-latest'
+        steps:
+            -   uses: actions/checkout@v7
+
+            -   name: Setup PHP  and composer
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: '8.5'
+                    extensions: xdebug
+                    coverage: xdebug
+                    tools: composer:v2
+
+            -   name: "Set composer cache directory"
+                id: composer-cache
+                run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+            -   name: "Cache composer"
+                uses: actions/cache@v6
+                with:
+                    path: ${{ steps.composer-cache.outputs.dir }}
+                    key: ${{ runner.os }}-composer-${{ hashFiles('composer.json') }}
+                    restore-keys: ${{ runner.os }}-composer-
+
+            -   name: Install dependencies
+                run: composer update
+
+            -   name: Run test suite
+                uses: php-actions/phpunit@v4
+                env:
+                    XDEBUG_MODE: coverage
+                with:
+                    php_version: '8.3'
+                    php_extensions: xdebug
+                    coverage_clover: "coverage.xml"
+                    args: --log-junit junit.xml
+
+            -   name: Upload coverage to Codecov
+                uses: codecov/codecov-action@v7
+                env:
+                    CODECOV_TOKEN: ${{ secrets.CODECOV_ORG_TOKEN }}
+
+            -   name: Upload test results to Codecov
+                if: ${{ !cancelled() }}
+                uses: codecov/test-results-action@v1
+                with:
+                    token: ${{ secrets.CODECOV_ORG_TOKEN }}

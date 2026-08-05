@@ -29,7 +29,7 @@ class OAuth2OutputTest extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getAuthCode')
-            ->will($this->returnValue($storedToken));
+            ->willReturn($storedToken);
 
         $this->fixture = new OAuth2($mockStorage);
         $response = $this->fixture->grantAccessToken($request);
@@ -51,7 +51,7 @@ class OAuth2OutputTest extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createBaseMock('OAuth2\IOAuth2GrantCode');
         $mockStorage->expects($this->any())
             ->method('getAuthCode')
-            ->will($this->returnValue($storedToken));
+            ->willReturn($storedToken);
 
         $this->fixture = new OAuth2($mockStorage);
         $this->fixture->setVariable(OAuth2::CONFIG_ENFORCE_INPUT_REDIRECT, false);
@@ -74,17 +74,17 @@ class OAuth2OutputTest extends \PHPUnit\Framework\TestCase
         $mockStorage = $this->createMock($interfaceName);
         $mockStorage->expects($this->any())
             ->method('getClient')
-            ->will($this->returnCallback(function ($id) use ($client) {
+            ->willReturnCallback(function ($id) use ($client) {
                 if ('my_little_app' === $id) {
                     return $client;
                 }
-            }));
+            });
         $mockStorage->expects($this->any())
             ->method('checkClientCredentials')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
         $mockStorage->expects($this->any())
             ->method('checkRestrictedGrantType')
-            ->will($this->returnValue(true)); // Always return true for any combination of user/pass
+            ->willReturn(true); // Always return true for any combination of user/pass
 
          return $mockStorage;
     }

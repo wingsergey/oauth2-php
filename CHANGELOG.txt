@@ -1,5 +1,15 @@
 oauth2-php revision xxx, xxxx-xx-xx (development version)
 ----------------------
+* Removal of the legacy client-side implementation (3.0): OAuth2\OAuth2Client and
+  OAuth2\OAuth2Exception, inherited from the 2011 Facebook PHP SDK, have been deleted.
+  They could not run on any supported PHP version anyway: both called
+  get_magic_quotes_gpc(), removed in PHP 8.0, and passed null as the second argument
+  of http_build_query(), a TypeError since PHP 8.1. Nothing in the library used them.
+  BC BREAKS:
+  - OAuth2\OAuth2Client is gone. Use an HTTP client (Symfony HttpClient, Guzzle) to
+    talk to a token endpoint.
+  - OAuth2\OAuth2Exception is gone. It was only ever thrown by the client above; the
+    server hierarchy (OAuth2ServerException and its subclasses) is untouched.
 * The library no longer ties OAuth2 clients to the Symfony security layer (3.0):
   IOAuth2Client no longer extends Symfony\Component\Security\Core\User\UserInterface.
   A client is not a security identity, and the library was carrying an undeclared

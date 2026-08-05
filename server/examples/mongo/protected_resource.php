@@ -17,7 +17,8 @@ $oauth = new OAuth2(new OAuth2StorageMongo());
 try {
     $oauth->verifyAccessToken($token);
 } catch (OAuth2ServerException $oauthError) {
-    $oauthError->sendHttpResponse();
+    $oauthError->getHttpResponse()->send();
+    exit;
 }
 
 // With a particular scope, you'd do:

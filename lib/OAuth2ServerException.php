@@ -102,15 +102,6 @@ class OAuth2ServerException extends \Exception
     }
 
     /**
-     * Outputs response
-     */
-    public function sendHttpResponse()
-    {
-        $this->getHttpResponse()->send();
-        exit; // TODO: refactor out this piece of code
-    }
-
-    /**
      * @see \Exception::__toString()
      */
     public function __toString()

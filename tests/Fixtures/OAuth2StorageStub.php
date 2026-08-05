@@ -92,7 +92,7 @@ class OAuth2StorageStub implements IOAuth2Storage, IOAuth2GrantClient, IOAuth2Re
     {
         $token = new OAuth2RefreshToken($client->getPublicId(), $refreshToken, $expires, $scope, $data);
 
-        $this->refreshToken[$refreshToken] = $token;
+        $this->refreshTokens[$refreshToken] = $token;
     }
 
     public function unsetRefreshToken($refreshToken)
